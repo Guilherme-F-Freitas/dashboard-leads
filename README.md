@@ -1,10 +1,10 @@
-# Dashboard Leads - Bona Chopp
+# Dashboard Leads - Bona Chopp v2
 
-Deploy no Railway:
-- Node/Express
-- `npm start`
-- usa `process.env.PORT`
-- endpoint local `/api/dashboard` consulta o webhook do n8n
+Novidades:
+- destaca leads em `aguardando_atendente`
+- botão "Devolver para automação"
+- proxy backend para chamar o webhook n8n sem problema de CORS
 
-Opcional:
-defina a variável `N8N_DASHBOARD_URL` no Railway para trocar a URL do webhook sem alterar o código.
+Variáveis opcionais no Railway:
+- `N8N_DASHBOARD_URL`
+- `N8N_LIBERAR_AUTOMACAO_URL`

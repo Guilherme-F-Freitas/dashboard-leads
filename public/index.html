@@ -5,33 +5,58 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Bona Chopp • Painel Comercial</title>
   <style>
-    :root{--bg:#f5f6f8;--card:#fff;--text:#141414;--muted:#6b7280;--line:#e5e7eb;--dark:#111827}
-    *{box-sizing:border-box} body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
+    :root{
+      --bg:#f5f6f8;--card:#fff;--text:#141414;--muted:#6b7280;--line:#e5e7eb;
+      --dark:#111827;--ok:#065f46;--okbg:#d1fae5;--wait:#92400e;--waitbg:#fef3c7;
+      --new:#1e40af;--newbg:#dbeafe;--human:#7c2d12;--humanbg:#ffedd5;--danger:#b91c1c;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
     header{background:var(--dark);color:#fff;padding:20px 24px;position:sticky;top:0;z-index:10}
     header .wrap{max-width:1280px;margin:auto;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
     h1{margin:0;font-size:22px}.sub{font-size:13px;color:#d1d5db;margin-top:4px}.status{font-size:12px;color:#d1d5db}
     .container{max-width:1280px;margin:24px auto;padding:0 16px 40px}
     .actions{display:flex;justify-content:flex-end;margin-bottom:14px}
     button{padding:10px 14px;border:0;border-radius:10px;background:#111827;color:white;cursor:pointer}
+    button:disabled{opacity:.55;cursor:not-allowed}
+    .btn-human{background:#7c2d12;font-size:12px;padding:7px 10px;white-space:nowrap}
     .cards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:18px}
     .card,.panel{background:#fff;border:1px solid var(--line);border-radius:14px}
     .card{padding:16px}.label{font-size:12px;color:var(--muted);text-transform:uppercase}.value{font-size:28px;font-weight:700;margin-top:8px}
     .panel{overflow:hidden;margin-bottom:18px}.panel-head{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
     .panel-head h2{font-size:16px;margin:0}.tools{display:flex;gap:8px;flex-wrap:wrap}
     input,select{padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:#fff}
-    .table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:980px}
-    th,td{padding:11px 12px;border-bottom:1px solid var(--line);text-align:left;font-size:13px;vertical-align:top}
-    th{background:#fafafa;font-size:12px;color:#4b5563}.pill{display:inline-block;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:600;background:#f3f4f6}
-    .ok{background:#d1fae5;color:#065f46}.wait{background:#fef3c7;color:#92400e}.new{background:#dbeafe;color:#1e40af}
-    .empty{padding:24px;color:var(--muted);text-align:center}.err{padding:12px 16px;color:#b91c1c;display:none}
+    .table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:1060px}
+    th,td{padding:11px 12px;border-bottom:1px solid var(--line);text-align:left;font-size:13px;vertical-align:middle}
+    th{background:#fafafa;font-size:12px;color:#4b5563}
+    tr.human-row{background:#fffaf5}
+    .pill{display:inline-block;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:600;background:#f3f4f6}
+    .ok{background:var(--okbg);color:var(--ok)}
+    .wait{background:var(--waitbg);color:var(--wait)}
+    .new{background:var(--newbg);color:var(--new)}
+    .human{background:var(--humanbg);color:var(--human)}
+    .empty{padding:24px;color:var(--muted);text-align:center}
+    .err{padding:12px 16px;color:var(--danger);display:none;background:#fee2e2;border:1px solid #fecaca;border-radius:10px;margin-bottom:14px}
+    .okmsg{padding:12px 16px;color:#065f46;display:none;background:#d1fae5;border:1px solid #a7f3d0;border-radius:10px;margin-bottom:14px}
     @media(max-width:900px){.cards{grid-template-columns:repeat(2,1fr)}.card:last-child{grid-column:span 2}}
   </style>
 </head>
 <body>
-<header><div class="wrap"><div><h1>Bona Chopp • Painel Comercial</h1><div class="sub">Leads, pedidos e indicadores</div></div><div id="status" class="status">Carregando...</div></div></header>
+<header>
+  <div class="wrap">
+    <div>
+      <h1>Bona Chopp • Painel Comercial</h1>
+      <div class="sub">Leads, pedidos e indicadores</div>
+    </div>
+    <div id="status" class="status">Carregando...</div>
+  </div>
+</header>
+
 <main class="container">
   <div class="actions"><button onclick="carregar()">Atualizar dados</button></div>
   <div id="erro" class="err"></div>
+  <div id="sucesso" class="okmsg"></div>
+
   <section class="cards">
     <div class="card"><div class="label">Total de leads</div><div id="kLeads" class="value">0</div></div>
     <div class="card"><div class="label">Orçamentos</div><div id="kOrc" class="value">0</div></div>
@@ -41,37 +66,202 @@
   </section>
 
   <section class="panel">
-    <div class="panel-head"><h2>Pedidos</h2><div class="tools">
-      <input id="fPedido" placeholder="Buscar pedido..." oninput="renderPedidos()"/>
-      <select id="sPedido" onchange="renderPedidos()"><option value="">Todos os status</option><option value="aguardando_dados">Aguardando dados</option><option value="confirmado">Confirmado</option></select>
-    </div></div>
-    <div class="table-wrap"><table><thead><tr><th>ID</th><th>Cliente</th><th>Telefone</th><th>Produto</th><th>Qtd.</th><th>Cidade</th><th>Data</th><th>Horário</th><th>Pagamento</th><th>Valor</th><th>Status</th></tr></thead><tbody id="pedidosBody"></tbody></table><div id="pedidosEmpty" class="empty">Nenhum pedido carregado.</div></div>
+    <div class="panel-head">
+      <h2>Pedidos</h2>
+      <div class="tools">
+        <input id="fPedido" placeholder="Buscar pedido..." oninput="renderPedidos()"/>
+        <select id="sPedido" onchange="renderPedidos()">
+          <option value="">Todos os status</option>
+          <option value="aguardando_dados">Aguardando dados</option>
+          <option value="confirmado">Confirmado</option>
+        </select>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>ID</th><th>Cliente</th><th>Telefone</th><th>Produto</th><th>Qtd.</th><th>Cidade</th><th>Data</th><th>Horário</th><th>Pagamento</th><th>Valor</th><th>Status</th></tr></thead>
+        <tbody id="pedidosBody"></tbody>
+      </table>
+      <div id="pedidosEmpty" class="empty">Nenhum pedido carregado.</div>
+    </div>
   </section>
 
   <section class="panel">
-    <div class="panel-head"><h2>Leads</h2><div class="tools"><input id="fLead" placeholder="Buscar lead..." oninput="renderLeads()"/></div></div>
-    <div class="table-wrap"><table><thead><tr><th>ID</th><th>Nome</th><th>Telefone</th><th>Interesse</th><th>Qtd.</th><th>Cidade</th><th>Data</th><th>Status</th><th>Última mensagem</th></tr></thead><tbody id="leadsBody"></tbody></table><div id="leadsEmpty" class="empty">Nenhum lead carregado.</div></div>
+    <div class="panel-head">
+      <h2>Leads</h2>
+      <div class="tools">
+        <input id="fLead" placeholder="Buscar lead..." oninput="renderLeads()"/>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>ID</th><th>Nome</th><th>Telefone</th><th>Interesse</th><th>Qtd.</th><th>Cidade</th><th>Data</th><th>Status</th><th>Última mensagem</th><th>Ação</th></tr></thead>
+        <tbody id="leadsBody"></tbody>
+      </table>
+      <div id="leadsEmpty" class="empty">Nenhum lead carregado.</div>
+    </div>
   </section>
 </main>
+
 <script>
 let dados={indicadores:{},pedidos:[],leads:[]};
+
 const brl=v=>Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-function dataBR(v){ if(!v) return '-'; const d=new Date(v); return isNaN(d)?esc(v):d.toLocaleDateString('pt-BR');}
-function statusPill(s){const c=s==='confirmado'?'ok':s==='aguardando_dados'?'wait':'new';return `<span class="pill ${c}">${esc(s||'-')}</span>`}
+
+function dataBR(v){
+  if(!v) return '-';
+  const d=new Date(v);
+  return isNaN(d) ? esc(v) : d.toLocaleDateString('pt-BR');
+}
+
+function statusPill(s){
+  const status=String(s||'');
+  let cls='new';
+  if(status==='confirmado') cls='ok';
+  else if(status==='aguardando_dados') cls='wait';
+  else if(status==='aguardando_atendente') cls='human';
+
+  const rotulo = status==='aguardando_atendente'
+    ? 'aguardando atendente'
+    : (status || '-').replaceAll('_',' ');
+
+  return `<span class="pill ${cls}">${esc(rotulo)}</span>`;
+}
+
+function mostrarErro(msg){
+  const e=document.getElementById('erro');
+  e.textContent=msg;
+  e.style.display='block';
+}
+
+function mostrarSucesso(msg){
+  const s=document.getElementById('sucesso');
+  s.textContent=msg;
+  s.style.display='block';
+  setTimeout(()=>s.style.display='none',3500);
+}
+
 async function carregar(){
-  const erro=document.getElementById('erro'); erro.style.display='none'; document.getElementById('status').textContent='Carregando...';
+  document.getElementById('erro').style.display='none';
+  document.getElementById('status').textContent='Carregando...';
+
   try{
     const r=await fetch('/api/dashboard',{cache:'no-store'});
     if(!r.ok) throw new Error('HTTP '+r.status);
+
     const j=await r.json();
-    dados={indicadores:j.indicadores||{},pedidos:Array.isArray(j.pedidos)?j.pedidos:[],leads:Array.isArray(j.leads)?j.leads:[]};
-    renderTudo(); document.getElementById('status').textContent='Conectado';
-  }catch(e){document.getElementById('status').textContent='Erro';erro.textContent='Não foi possível carregar os dados: '+e.message;erro.style.display='block'}
+
+    dados={
+      indicadores:j.indicadores||{},
+      pedidos:Array.isArray(j.pedidos)?j.pedidos:[],
+      leads:Array.isArray(j.leads)?j.leads:[]
+    };
+
+    renderTudo();
+    document.getElementById('status').textContent='Conectado';
+  }catch(e){
+    document.getElementById('status').textContent='Erro';
+    mostrarErro('Não foi possível carregar os dados: '+e.message);
+  }
 }
-function renderTudo(){const i=dados.indicadores||{};kLeads.textContent=i.total_leads??dados.leads.length;kOrc.textContent=i.em_orcamento??0;kAbertos.textContent=i.aguardando_dados??0;kConf.textContent=i.confirmados??0;kValor.textContent=brl(i.valor_confirmado??0);renderPedidos();renderLeads()}
-function renderPedidos(){const q=fPedido.value.toLowerCase(),s=sPedido.value;const a=dados.pedidos.filter(p=>(!q||Object.values(p).join(' ').toLowerCase().includes(q))&&(!s||p.status===s));pedidosBody.innerHTML=a.map(p=>`<tr><td>${esc(p.id)}</td><td>${esc(p.nome_completo||p.nome||'-')}</td><td>${esc(p.telefone)}</td><td>${esc(p.produto)}</td><td>${esc(p.quantidade)}</td><td>${esc(p.cidade)}</td><td>${dataBR(p.data_evento)}</td><td>${esc(p.horario_preferido||'-')}</td><td>${esc(p.forma_pagamento||'-')}</td><td>${brl(p.valor)}</td><td>${statusPill(p.status)}</td></tr>`).join('');pedidosEmpty.style.display=a.length?'none':'block'}
-function renderLeads(){const q=fLead.value.toLowerCase();const a=dados.leads.filter(p=>Object.values(p).join(' ').toLowerCase().includes(q));leadsBody.innerHTML=a.map(p=>`<tr><td>${esc(p.id)}</td><td>${esc(p.nome)}</td><td>${esc(p.telefone)}</td><td>${esc(p.interesse||'-')}</td><td>${esc(p.quantidade||'-')}</td><td>${esc(p.cidade||'-')}</td><td>${dataBR(p.data_evento)}</td><td>${statusPill(p.status)}</td><td>${esc(p.ultima_mensagem||'-')}</td></tr>`).join('');leadsEmpty.style.display=a.length?'none':'block'}
+
+async function liberarAutomacao(telefone, botao){
+  if(!telefone) return;
+
+  const original=botao.textContent;
+  botao.disabled=true;
+  botao.textContent='Liberando...';
+
+  try{
+    const r=await fetch('/api/liberar-automacao',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({telefone})
+    });
+
+    const j=await r.json().catch(()=>({}));
+
+    if(!r.ok){
+      throw new Error(j.error || ('HTTP '+r.status));
+    }
+
+    mostrarSucesso('Cliente devolvido para a automação com sucesso.');
+    await carregar();
+  }catch(e){
+    mostrarErro('Não foi possível devolver o cliente para a automação: '+e.message);
+    botao.disabled=false;
+    botao.textContent=original;
+  }
+}
+
+function renderTudo(){
+  const i=dados.indicadores||{};
+  kLeads.textContent=i.total_leads??dados.leads.length;
+  kOrc.textContent=i.em_orcamento??0;
+  kAbertos.textContent=i.aguardando_dados??0;
+  kConf.textContent=i.confirmados??0;
+  kValor.textContent=brl(i.valor_confirmado??0);
+  renderPedidos();
+  renderLeads();
+}
+
+function renderPedidos(){
+  const q=fPedido.value.toLowerCase(),s=sPedido.value;
+  const a=dados.pedidos.filter(p=>
+    (!q||Object.values(p).join(' ').toLowerCase().includes(q)) &&
+    (!s||p.status===s)
+  );
+
+  pedidosBody.innerHTML=a.map(p=>`
+    <tr>
+      <td>${esc(p.id)}</td>
+      <td>${esc(p.nome_completo||p.nome||'-')}</td>
+      <td>${esc(p.telefone)}</td>
+      <td>${esc(p.produto)}</td>
+      <td>${esc(p.quantidade)}</td>
+      <td>${esc(p.cidade)}</td>
+      <td>${dataBR(p.data_evento)}</td>
+      <td>${esc(p.horario_preferido||'-')}</td>
+      <td>${esc(p.forma_pagamento||'-')}</td>
+      <td>${brl(p.valor)}</td>
+      <td>${statusPill(p.status)}</td>
+    </tr>`).join('');
+
+  pedidosEmpty.style.display=a.length?'none':'block';
+}
+
+function renderLeads(){
+  const q=fLead.value.toLowerCase();
+  const a=dados.leads.filter(p=>
+    Object.values(p).join(' ').toLowerCase().includes(q)
+  );
+
+  leadsBody.innerHTML=a.map(p=>{
+    const aguardando=p.status==='aguardando_atendente';
+
+    const acao=aguardando
+      ? `<button class="btn-human" onclick="liberarAutomacao('${esc(p.telefone)}', this)">Devolver para automação</button>`
+      : '-';
+
+    return `
+      <tr class="${aguardando?'human-row':''}">
+        <td>${esc(p.id)}</td>
+        <td>${esc(p.nome)}</td>
+        <td>${esc(p.telefone)}</td>
+        <td>${esc(p.interesse||'-')}</td>
+        <td>${esc(p.quantidade||'-')}</td>
+        <td>${esc(p.cidade||'-')}</td>
+        <td>${dataBR(p.data_evento)}</td>
+        <td>${statusPill(p.status)}</td>
+        <td>${esc(p.ultima_mensagem||'-')}</td>
+        <td>${acao}</td>
+      </tr>`;
+  }).join('');
+
+  leadsEmpty.style.display=a.length?'none':'block';
+}
+
 carregar();
 </script>
 </body>
