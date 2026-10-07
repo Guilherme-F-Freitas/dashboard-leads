@@ -1,268 +1,305 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Bona Chopp • Painel Comercial</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard de Leads</title>
   <style>
-    :root{
-      --bg:#f5f6f8;--card:#fff;--text:#141414;--muted:#6b7280;--line:#e5e7eb;
-      --dark:#111827;--ok:#065f46;--okbg:#d1fae5;--wait:#92400e;--waitbg:#fef3c7;
-      --new:#1e40af;--newbg:#dbeafe;--human:#7c2d12;--humanbg:#ffedd5;--danger:#b91c1c;
+    :root {
+      --bg:#f6f7fb; --card:#fff; --text:#1f2937; --muted:#6b7280; --border:#e5e7eb;
+      --primary:#111827; --success:#166534; --success-bg:#dcfce7;
+      --warning:#92400e; --warning-bg:#fef3c7; --danger:#991b1b; --danger-bg:#fee2e2;
+      --info:#1d4ed8; --info-bg:#dbeafe; --shadow:0 8px 24px rgba(0,0,0,.06);
     }
     *{box-sizing:border-box}
     body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
-    header{background:var(--dark);color:#fff;padding:20px 24px;position:sticky;top:0;z-index:10}
-    header .wrap{max-width:1280px;margin:auto;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
-    h1{margin:0;font-size:22px}.sub{font-size:13px;color:#d1d5db;margin-top:4px}.status{font-size:12px;color:#d1d5db}
-    .container{max-width:1280px;margin:24px auto;padding:0 16px 40px}
-    .actions{display:flex;justify-content:flex-end;margin-bottom:14px}
-    button{padding:10px 14px;border:0;border-radius:10px;background:#111827;color:white;cursor:pointer}
-    button:disabled{opacity:.55;cursor:not-allowed}
-    .btn-human{background:#7c2d12;font-size:12px;padding:7px 10px;white-space:nowrap}
-    .cards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:18px}
-    .card,.panel{background:#fff;border:1px solid var(--line);border-radius:14px}
-    .card{padding:16px}.label{font-size:12px;color:var(--muted);text-transform:uppercase}.value{font-size:28px;font-weight:700;margin-top:8px}
-    .panel{overflow:hidden;margin-bottom:18px}.panel-head{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-    .panel-head h2{font-size:16px;margin:0}.tools{display:flex;gap:8px;flex-wrap:wrap}
-    input,select{padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:#fff}
-    .table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:1060px}
-    th,td{padding:11px 12px;border-bottom:1px solid var(--line);text-align:left;font-size:13px;vertical-align:middle}
-    th{background:#fafafa;font-size:12px;color:#4b5563}
-    tr.human-row{background:#fffaf5}
-    .pill{display:inline-block;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:600;background:#f3f4f6}
-    .ok{background:var(--okbg);color:var(--ok)}
-    .wait{background:var(--waitbg);color:var(--wait)}
-    .new{background:var(--newbg);color:var(--new)}
-    .human{background:var(--humanbg);color:var(--human)}
-    .empty{padding:24px;color:var(--muted);text-align:center}
-    .err{padding:12px 16px;color:var(--danger);display:none;background:#fee2e2;border:1px solid #fecaca;border-radius:10px;margin-bottom:14px}
-    .okmsg{padding:12px 16px;color:#065f46;display:none;background:#d1fae5;border:1px solid #a7f3d0;border-radius:10px;margin-bottom:14px}
-    @media(max-width:900px){.cards{grid-template-columns:repeat(2,1fr)}.card:last-child{grid-column:span 2}}
+    .container{width:min(1500px,96%);margin:0 auto;padding:24px 0 40px}
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:22px;flex-wrap:wrap}
+    .title-wrap h1{margin:0;font-size:28px}
+    .title-wrap p{margin:6px 0 0;color:var(--muted);font-size:14px}
+    .top-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .status-auto,.last-update{font-size:12px;color:var(--muted)}
+    .btn{border:0;border-radius:10px;padding:10px 14px;font-size:14px;cursor:pointer;transition:.2s ease}
+    .btn:hover{transform:translateY(-1px);opacity:.92}
+    .btn-primary{background:var(--primary);color:#fff}
+    .btn-warning{background:#f59e0b;color:#111827;font-weight:700}
+    .btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
+    .cards{display:grid;grid-template-columns:repeat(5,minmax(160px,1fr));gap:14px;margin-bottom:24px}
+    .card,.section{background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow)}
+    .card{padding:18px}
+    .card .label{color:var(--muted);font-size:13px;margin-bottom:8px}
+    .card .value{font-size:28px;font-weight:700;line-height:1.1}
+    .section{margin-top:20px;overflow:hidden}
+    .section-header{padding:18px 18px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+    .section-header h2{margin:0;font-size:20px}
+    .search{width:min(360px,100%);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:14px;outline:none}
+    .table-wrap{overflow-x:auto;width:100%}
+    table{width:100%;border-collapse:collapse;min-width:1080px}
+    th,td{padding:12px 14px;border-bottom:1px solid var(--border);text-align:left;font-size:13px;vertical-align:top}
+    th{background:#fafafa;color:#4b5563;font-size:12px;text-transform:uppercase;letter-spacing:.03em}
+    tr:hover td{background:#fcfcfd}
+    .badge{display:inline-block;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:700;white-space:nowrap}
+    .badge-default{background:#f3f4f6;color:#374151}
+    .badge-success{background:var(--success-bg);color:var(--success)}
+    .badge-warning{background:var(--warning-bg);color:var(--warning)}
+    .badge-danger{background:var(--danger-bg);color:var(--danger)}
+    .badge-info{background:var(--info-bg);color:var(--info)}
+    .human-row td{background:#fffaf0}
+    .empty{color:var(--muted);text-align:center;padding:28px!important}
+    .loading{opacity:.55;pointer-events:none}
+    .error-box{display:none;margin-bottom:18px;padding:12px 14px;border-radius:10px;background:var(--danger-bg);color:var(--danger);border:1px solid #fecaca;font-size:14px}
+    @media(max-width:1100px){.cards{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:640px){.container{width:94%;padding-top:16px}.title-wrap h1{font-size:23px}.cards{grid-template-columns:1fr}.btn-primary{width:100%}}
   </style>
 </head>
 <body>
-<header>
-  <div class="wrap">
-    <div>
-      <h1>Bona Chopp • Painel Comercial</h1>
-      <div class="sub">Leads, pedidos e indicadores</div>
-    </div>
-    <div id="status" class="status">Carregando...</div>
-  </div>
-</header>
-
-<main class="container">
-  <div class="actions"><button onclick="carregar()">Atualizar dados</button></div>
-  <div id="erro" class="err"></div>
-  <div id="sucesso" class="okmsg"></div>
-
-  <section class="cards">
-    <div class="card"><div class="label">Total de leads</div><div id="kLeads" class="value">0</div></div>
-    <div class="card"><div class="label">Orçamentos</div><div id="kOrc" class="value">0</div></div>
-    <div class="card"><div class="label">Pedidos abertos</div><div id="kAbertos" class="value">0</div></div>
-    <div class="card"><div class="label">Confirmados</div><div id="kConf" class="value">0</div></div>
-    <div class="card"><div class="label">Valor confirmado</div><div id="kValor" class="value">R$ 0,00</div></div>
-  </section>
-
-  <section class="panel">
-    <div class="panel-head">
-      <h2>Pedidos</h2>
-      <div class="tools">
-        <input id="fPedido" placeholder="Buscar pedido..." oninput="renderPedidos()"/>
-        <select id="sPedido" onchange="renderPedidos()">
-          <option value="">Todos os status</option>
-          <option value="aguardando_dados">Aguardando dados</option>
-          <option value="confirmado">Confirmado</option>
-        </select>
+  <main class="container">
+    <div class="topbar">
+      <div class="title-wrap">
+        <h1>Dashboard de Leads</h1>
+        <p>Acompanhamento comercial em tempo real</p>
+      </div>
+      <div class="top-actions">
+        <span class="status-auto">Atualização automática a cada 10 segundos</span>
+        <button id="btnAtualizar" class="btn btn-primary" type="button">Atualizar dados</button>
       </div>
     </div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>ID</th><th>Cliente</th><th>Telefone</th><th>Produto</th><th>Qtd.</th><th>Cidade</th><th>Data</th><th>Horário</th><th>Pagamento</th><th>Valor</th><th>Status</th></tr></thead>
-        <tbody id="pedidosBody"></tbody>
-      </table>
-      <div id="pedidosEmpty" class="empty">Nenhum pedido carregado.</div>
-    </div>
-  </section>
 
-  <section class="panel">
-    <div class="panel-head">
-      <h2>Leads</h2>
-      <div class="tools">
-        <input id="fLead" placeholder="Buscar lead..." oninput="renderLeads()"/>
+    <div id="erro" class="error-box"></div>
+
+    <section class="cards">
+      <div class="card"><div class="label">Total de Leads</div><div id="totalLeads" class="value">0</div></div>
+      <div class="card"><div class="label">Em Orçamento</div><div id="emOrcamento" class="value">0</div></div>
+      <div class="card"><div class="label">Aguardando Dados</div><div id="aguardandoDados" class="value">0</div></div>
+      <div class="card"><div class="label">Pedidos Confirmados</div><div id="confirmados" class="value">0</div></div>
+      <div class="card"><div class="label">Valor Confirmado</div><div id="valorConfirmado" class="value">R$ 0,00</div></div>
+    </section>
+
+    <div class="last-update">Última atualização: <span id="ultimaAtualizacao">-</span></div>
+
+    <section class="section">
+      <div class="section-header">
+        <h2>Pedidos</h2>
+        <input id="buscarPedido" class="search" type="search" placeholder="Buscar pedido..." autocomplete="off" />
       </div>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>ID</th><th>Nome</th><th>Telefone</th><th>Interesse</th><th>Qtd.</th><th>Cidade</th><th>Data</th><th>Status</th><th>Última mensagem</th><th>Ação</th></tr></thead>
-        <tbody id="leadsBody"></tbody>
-      </table>
-      <div id="leadsEmpty" class="empty">Nenhum lead carregado.</div>
-    </div>
-  </section>
-</main>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>ID</th><th>Nome</th><th>Telefone</th><th>Produto</th><th>Qtd.</th><th>Cidade</th><th>Data</th><th>Horário</th><th>Pagamento</th><th>Valor</th><th>Status</th>
+          </tr></thead>
+          <tbody id="tabelaPedidos"><tr><td colspan="11" class="empty">Carregando...</td></tr></tbody>
+        </table>
+      </div>
+    </section>
 
-<script>
-let dados={indicadores:{},pedidos:[],leads:[]};
+    <section class="section">
+      <div class="section-header">
+        <h2>Leads</h2>
+        <input id="buscarLead" class="search" type="search" placeholder="Buscar lead..." autocomplete="off" />
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>ID</th><th>Nome</th><th>Telefone</th><th>Interesse</th><th>Qtd.</th><th>Cidade</th><th>Data</th><th>Horário</th><th>Status</th><th>Última mensagem</th><th>Ação</th>
+          </tr></thead>
+          <tbody id="tabelaLeads"><tr><td colspan="11" class="empty">Carregando...</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
 
-const brl=v=>Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  <script>
+    const AUTO_REFRESH_MS = 10000;
+    let dadosAtuais = { indicadores:{}, pedidos:[], leads:[] };
+    let atualizando = false;
+    const el = id => document.getElementById(id);
 
-function dataBR(v){
-  if(!v) return '-';
-  const d=new Date(v);
-  return isNaN(d) ? esc(v) : d.toLocaleDateString('pt-BR');
-}
-
-function statusPill(s){
-  const status=String(s||'');
-  let cls='new';
-  if(status==='confirmado') cls='ok';
-  else if(status==='aguardando_dados') cls='wait';
-  else if(status==='aguardando_atendente') cls='human';
-
-  const rotulo = status==='aguardando_atendente'
-    ? 'aguardando atendente'
-    : (status || '-').replaceAll('_',' ');
-
-  return `<span class="pill ${cls}">${esc(rotulo)}</span>`;
-}
-
-function mostrarErro(msg){
-  const e=document.getElementById('erro');
-  e.textContent=msg;
-  e.style.display='block';
-}
-
-function mostrarSucesso(msg){
-  const s=document.getElementById('sucesso');
-  s.textContent=msg;
-  s.style.display='block';
-  setTimeout(()=>s.style.display='none',3500);
-}
-
-async function carregar(){
-  document.getElementById('erro').style.display='none';
-  document.getElementById('status').textContent='Carregando...';
-
-  try{
-    const r=await fetch('/api/dashboard',{cache:'no-store'});
-    if(!r.ok) throw new Error('HTTP '+r.status);
-
-    const j=await r.json();
-
-    dados={
-      indicadores:j.indicadores||{},
-      pedidos:Array.isArray(j.pedidos)?j.pedidos:[],
-      leads:Array.isArray(j.leads)?j.leads:[]
-    };
-
-    renderTudo();
-    document.getElementById('status').textContent='Conectado';
-  }catch(e){
-    document.getElementById('status').textContent='Erro';
-    mostrarErro('Não foi possível carregar os dados: '+e.message);
-  }
-}
-
-async function liberarAutomacao(telefone, botao){
-  if(!telefone) return;
-
-  const original=botao.textContent;
-  botao.disabled=true;
-  botao.textContent='Liberando...';
-
-  try{
-    const r=await fetch('/api/liberar-automacao',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({telefone})
-    });
-
-    const j=await r.json().catch(()=>({}));
-
-    if(!r.ok){
-      throw new Error(j.error || ('HTTP '+r.status));
+    function escapar(valor){
+      if(valor===null||valor===undefined) return "-";
+      return String(valor)
+        .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;").replaceAll("'","&#039;");
     }
 
-    mostrarSucesso('Cliente devolvido para a automação com sucesso.');
-    await carregar();
-  }catch(e){
-    mostrarErro('Não foi possível devolver o cliente para a automação: '+e.message);
-    botao.disabled=false;
-    botao.textContent=original;
-  }
-}
+    function normalizarStatus(status){
+      return String(status||"").trim().toLowerCase().replaceAll("_"," ");
+    }
 
-function renderTudo(){
-  const i=dados.indicadores||{};
-  kLeads.textContent=i.total_leads??dados.leads.length;
-  kOrc.textContent=i.em_orcamento??0;
-  kAbertos.textContent=i.aguardando_dados??0;
-  kConf.textContent=i.confirmados??0;
-  kValor.textContent=brl(i.valor_confirmado??0);
-  renderPedidos();
-  renderLeads();
-}
+    function classeStatus(status){
+      const s=normalizarStatus(status);
+      if(s.includes("confirmado")) return "badge-success";
+      if(s.includes("aguardando atendente")) return "badge-warning";
+      if(s.includes("aguardando dados")) return "badge-warning";
+      if(s.includes("orcamento")) return "badge-info";
+      if(s.includes("cancelado")) return "badge-danger";
+      if(s.includes("ativo")) return "badge-success";
+      return "badge-default";
+    }
 
-function renderPedidos(){
-  const q=fPedido.value.toLowerCase(),s=sPedido.value;
-  const a=dados.pedidos.filter(p=>
-    (!q||Object.values(p).join(' ').toLowerCase().includes(q)) &&
-    (!s||p.status===s)
-  );
+    function labelStatus(status){
+      if(!status) return "-";
+      return String(status).replaceAll("_"," ").replace(/\b\w/g,l=>l.toUpperCase());
+    }
 
-  pedidosBody.innerHTML=a.map(p=>`
-    <tr>
-      <td>${esc(p.id)}</td>
-      <td>${esc(p.nome_completo||p.nome||'-')}</td>
-      <td>${esc(p.telefone)}</td>
-      <td>${esc(p.produto)}</td>
-      <td>${esc(p.quantidade)}</td>
-      <td>${esc(p.cidade)}</td>
-      <td>${dataBR(p.data_evento)}</td>
-      <td>${esc(p.horario_preferido||'-')}</td>
-      <td>${esc(p.forma_pagamento||'-')}</td>
-      <td>${brl(p.valor)}</td>
-      <td>${statusPill(p.status)}</td>
-    </tr>`).join('');
+    function formatarData(valor){
+      if(!valor) return "-";
+      const t=String(valor);
+      if(/^\d{4}-\d{2}-\d{2}/.test(t)){
+        const [a,m,d]=t.slice(0,10).split("-");
+        return `${d}/${m}/${a}`;
+      }
+      return t;
+    }
 
-  pedidosEmpty.style.display=a.length?'none':'block';
-}
+    function formatarMoeda(valor){
+      return Number(valor||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+    }
 
-function renderLeads(){
-  const q=fLead.value.toLowerCase();
-  const a=dados.leads.filter(p=>
-    Object.values(p).join(' ').toLowerCase().includes(q)
-  );
+    function textoBusca(item){
+      return Object.values(item||{}).filter(v=>v!==null&&v!==undefined).join(" ").toLowerCase();
+    }
 
-  leadsBody.innerHTML=a.map(p=>{
-    const aguardando=p.status==='aguardando_atendente';
+    function renderIndicadores(i={}){
+      el("totalLeads").textContent=i.total_leads??0;
+      el("emOrcamento").textContent=i.em_orcamento??0;
+      el("aguardandoDados").textContent=i.aguardando_dados??0;
+      el("confirmados").textContent=i.confirmados??0;
+      el("valorConfirmado").textContent=formatarMoeda(i.valor_confirmado);
+    }
 
-    const acao=aguardando
-      ? `<button class="btn-human" onclick="liberarAutomacao('${esc(p.telefone)}', this)">Devolver para automação</button>`
-      : '-';
+    function renderPedidos(){
+      const termo=el("buscarPedido").value.trim().toLowerCase();
+      const pedidos=(dadosAtuais.pedidos||[]).filter(p=>textoBusca(p).includes(termo));
+      const tbody=el("tabelaPedidos");
 
-    return `
-      <tr class="${aguardando?'human-row':''}">
-        <td>${esc(p.id)}</td>
-        <td>${esc(p.nome)}</td>
-        <td>${esc(p.telefone)}</td>
-        <td>${esc(p.interesse||'-')}</td>
-        <td>${esc(p.quantidade||'-')}</td>
-        <td>${esc(p.cidade||'-')}</td>
-        <td>${dataBR(p.data_evento)}</td>
-        <td>${statusPill(p.status)}</td>
-        <td>${esc(p.ultima_mensagem||'-')}</td>
-        <td>${acao}</td>
-      </tr>`;
-  }).join('');
+      if(!pedidos.length){
+        tbody.innerHTML='<tr><td colspan="11" class="empty">Nenhum pedido encontrado.</td></tr>';
+        return;
+      }
 
-  leadsEmpty.style.display=a.length?'none':'block';
-}
+      tbody.innerHTML=pedidos.map(p=>`
+        <tr>
+          <td>${escapar(p.id)}</td>
+          <td>${escapar(p.nome_completo)}</td>
+          <td>${escapar(p.telefone)}</td>
+          <td>${escapar(p.produto)}</td>
+          <td>${escapar(p.quantidade)}</td>
+          <td>${escapar(p.cidade)}</td>
+          <td>${escapar(formatarData(p.data_evento))}</td>
+          <td>${escapar(p.horario_preferido)}</td>
+          <td>${escapar(p.forma_pagamento)}</td>
+          <td>${escapar(formatarMoeda(p.valor))}</td>
+          <td><span class="badge ${classeStatus(p.status)}">${escapar(labelStatus(p.status))}</span></td>
+        </tr>`).join("");
+    }
 
-carregar();
-</script>
+    function renderLeads(){
+      const termo=el("buscarLead").value.trim().toLowerCase();
+      const leads=(dadosAtuais.leads||[]).filter(l=>textoBusca(l).includes(termo));
+      const tbody=el("tabelaLeads");
+
+      if(!leads.length){
+        tbody.innerHTML='<tr><td colspan="11" class="empty">Nenhum lead encontrado.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML=leads.map(lead=>{
+        const humano=normalizarStatus(lead.status)==="aguardando atendente";
+        const acao=humano
+          ? `<button class="btn btn-warning" type="button" onclick="devolverAutomacao('${escapar(lead.telefone)}', this)">Devolver para automação</button>`
+          : "-";
+
+        return `
+          <tr class="${humano?"human-row":""}">
+            <td>${escapar(lead.id)}</td>
+            <td>${escapar(lead.nome)}</td>
+            <td>${escapar(lead.telefone)}</td>
+            <td>${escapar(lead.interesse)}</td>
+            <td>${escapar(lead.quantidade)}</td>
+            <td>${escapar(lead.cidade)}</td>
+            <td>${escapar(formatarData(lead.data_evento))}</td>
+            <td>${escapar(lead.horario_preferido)}</td>
+            <td><span class="badge ${classeStatus(lead.status)}">${escapar(labelStatus(lead.status))}</span></td>
+            <td>${escapar(lead.ultima_mensagem)}</td>
+            <td>${acao}</td>
+          </tr>`;
+      }).join("");
+    }
+
+    function mostrarErro(msg){
+      const box=el("erro");
+      if(!msg){ box.style.display="none"; box.textContent=""; return; }
+      box.textContent=msg; box.style.display="block";
+    }
+
+    async function carregarDashboard({silencioso=false}={}){
+      if(atualizando) return;
+      atualizando=true;
+      const botao=el("btnAtualizar");
+
+      if(!silencioso){
+        botao.disabled=true;
+        botao.textContent="Atualizando...";
+        document.body.classList.add("loading");
+      }
+
+      try{
+        const r=await fetch("/api/dashboard",{method:"GET",headers:{Accept:"application/json"},cache:"no-store"});
+        if(!r.ok) throw new Error(`Erro HTTP ${r.status}`);
+
+        const d=await r.json();
+        dadosAtuais={
+          indicadores:d.indicadores||{},
+          pedidos:Array.isArray(d.pedidos)?d.pedidos:[],
+          leads:Array.isArray(d.leads)?d.leads:[]
+        };
+
+        renderIndicadores(dadosAtuais.indicadores);
+        renderPedidos();
+        renderLeads();
+        el("ultimaAtualizacao").textContent=new Date().toLocaleTimeString("pt-BR");
+        mostrarErro("");
+      }catch(e){
+        console.error("Erro ao carregar dashboard:",e);
+        mostrarErro("Não foi possível atualizar os dados do dashboard. Verifique o workflow/API.");
+      }finally{
+        atualizando=false;
+        if(!silencioso){
+          botao.disabled=false;
+          botao.textContent="Atualizar dados";
+          document.body.classList.remove("loading");
+        }
+      }
+    }
+
+    async function devolverAutomacao(telefone,botao){
+      if(!telefone) return;
+      const original=botao.textContent;
+      botao.disabled=true;
+      botao.textContent="Liberando...";
+
+      try{
+        const r=await fetch("/api/liberar-automacao",{
+          method:"POST",
+          headers:{"Content-Type":"application/json",Accept:"application/json"},
+          body:JSON.stringify({telefone})
+        });
+        if(!r.ok) throw new Error(`Erro HTTP ${r.status}`);
+        await carregarDashboard({silencioso:true});
+      }catch(e){
+        console.error("Erro ao devolver para automação:",e);
+        alert("Não foi possível devolver este atendimento para a automação.");
+        botao.disabled=false;
+        botao.textContent=original;
+      }
+    }
+
+    el("btnAtualizar").addEventListener("click",()=>carregarDashboard());
+    el("buscarPedido").addEventListener("input",renderPedidos);
+    el("buscarLead").addEventListener("input",renderLeads);
+
+    carregarDashboard();
+    setInterval(()=>carregarDashboard({silencioso:true}),AUTO_REFRESH_MS);
+  </script>
 </body>
 </html>
