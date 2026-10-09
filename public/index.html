@@ -74,6 +74,7 @@
       <div class="top-actions">
         <span class="status-auto">Atualização automática a cada 10 segundos</span>
         <button id="btnAtualizar" class="btn btn-primary" type="button">Atualizar dados</button>
+        <button id="btnSair" class="btn btn-logout" type="button">Sair</button>
       </div>
     </div>
 
@@ -404,7 +405,28 @@
       }
     }
 
+
+    async function sairDashboard(){
+      const botao=el("btnSair");
+      if(!botao) return;
+
+      botao.disabled=true;
+      botao.textContent="Saindo...";
+
+      try{
+        await fetch("/api/logout",{
+          method:"POST",
+          headers:{Accept:"application/json"}
+        });
+      }catch(e){
+        console.error("Erro ao sair:",e);
+      }finally{
+        window.location.href="/login";
+      }
+    }
+
     el("btnAtualizar").addEventListener("click",()=>carregarDashboard());
+    el("btnSair")?.addEventListener("click",sairDashboard);
     el("buscarPedido").addEventListener("input",renderPedidos);
     el("buscarLead").addEventListener("input",renderLeads);
 
