@@ -3,30 +3,30 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard de Leads</title>
+  <title>Bona Chopp • Painel Comercial</title>
   <style>
     :root {
-      --bg:#f6f7fb; --card:#fff; --text:#1f2937; --muted:#6b7280; --border:#e5e7eb;
-      --primary:#111827; --success:#166534; --success-bg:#dcfce7;
+      --bg:#f4f5f7; --card:#ffffff; --text:#171717; --muted:#6b7280; --border:#e5e7eb;
+      --primary:#0b0b0b; --gold:#d4a017; --gold-soft:#fff7dc; --success:#166534; --success-bg:#dcfce7;
       --warning:#92400e; --warning-bg:#fef3c7; --danger:#991b1b; --danger-bg:#fee2e2;
-      --info:#1d4ed8; --info-bg:#dbeafe; --shadow:0 8px 24px rgba(0,0,0,.06);
+      --info:#1d4ed8; --info-bg:#dbeafe; --shadow:0 10px 28px rgba(0,0,0,.07);
     }
     *{box-sizing:border-box}
-    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
+    body{margin:0;font-family:Inter,Arial,Helvetica,sans-serif;background:linear-gradient(180deg,#f7f7f7 0,#f2f3f5 100%);color:var(--text)}
     .container{width:min(1500px,96%);margin:0 auto;padding:24px 0 40px}
-    .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:22px;flex-wrap:wrap}
-    .title-wrap h1{margin:0;font-size:28px}
-    .title-wrap p{margin:6px 0 0;color:var(--muted);font-size:14px}
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:22px;flex-wrap:wrap;padding:20px 22px;background:linear-gradient(135deg,#0b0b0b,#1a1a1a);border-radius:18px;box-shadow:var(--shadow)}
+    .title-wrap h1{margin:0;font-size:28px;color:#fff}.title-wrap h1 span{color:var(--gold)}
+    .title-wrap p{margin:6px 0 0;color:#c7c7c7;font-size:14px}
     .top-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-    .status-auto,.last-update{font-size:12px;color:var(--muted)}
+    .status-auto{font-size:12px;color:#d4d4d4}.last-update{font-size:12px;color:var(--muted)}
     .btn{border:0;border-radius:10px;padding:10px 14px;font-size:14px;cursor:pointer;transition:.2s ease}
     .btn:hover{transform:translateY(-1px);opacity:.92}
-    .btn-primary{background:var(--primary);color:#fff}
-    .btn-warning{background:#f59e0b;color:#111827;font-weight:700}
+    .btn-primary{background:var(--gold);color:#111;font-weight:800}
+    .btn-warning{background:#f59e0b;color:#111827;font-weight:700}.btn-whatsapp{background:#25D366;color:#fff;text-decoration:none;font-weight:800;display:inline-flex;align-items:center;justify-content:center}.acoes-humanas{display:flex;gap:8px;flex-wrap:wrap}
     .btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
     .cards{display:grid;grid-template-columns:repeat(5,minmax(160px,1fr));gap:14px;margin-bottom:24px}
     .card,.section{background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow)}
-    .card{padding:18px}
+    .card{padding:18px;border-top:3px solid var(--gold)}
     .card .label{color:var(--muted);font-size:13px;margin-bottom:8px}
     .card .value{font-size:28px;font-weight:700;line-height:1.1}
     .section{margin-top:20px;overflow:hidden}
@@ -49,15 +49,15 @@
     .loading{opacity:.55;pointer-events:none}
     .error-box{display:none;margin-bottom:18px;padding:12px 14px;border-radius:10px;background:var(--danger-bg);color:var(--danger);border:1px solid #fecaca;font-size:14px}
     @media(max-width:1100px){.cards{grid-template-columns:repeat(2,1fr)}}
-    @media(max-width:640px){.container{width:94%;padding-top:16px}.title-wrap h1{font-size:23px}.cards{grid-template-columns:1fr}.btn-primary{width:100%}}
+    @media(max-width:640px){.container{width:94%;padding-top:12px}.topbar{padding:18px}.title-wrap h1{font-size:22px}.cards{grid-template-columns:1fr}.btn-primary{width:100%}.top-actions{width:100%}.status-auto{width:100%}.search{width:100%}.acoes-humanas{flex-direction:column}.acoes-humanas .btn{width:100%}}
   </style>
 </head>
 <body>
   <main class="container">
     <div class="topbar">
       <div class="title-wrap">
-        <h1>Dashboard de Leads</h1>
-        <p>Acompanhamento comercial em tempo real</p>
+        <h1>Bona Chopp <span>• Painel Comercial</span></h1>
+        <p>Leads, pedidos e atendimento humano em tempo real</p>
       </div>
       <div class="top-actions">
         <span class="status-auto">Atualização automática a cada 10 segundos</span>
@@ -85,7 +85,7 @@
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th>ID</th><th>Nome</th><th>Telefone</th><th>Produto</th><th>Qtd.</th><th>Cidade</th><th>Data</th><th>Horário</th><th>Pagamento</th><th>Valor</th><th>Status</th>
+            <th>ID</th><th>Nome</th><th>Telefone</th><th>Produto</th><th>Qtd.</th><th>Cidade</th><th>Data</th><th>Período</th><th>Pagamento</th><th>Valor</th><th>Status</th>
           </tr></thead>
           <tbody id="tabelaPedidos"><tr><td colspan="11" class="empty">Carregando...</td></tr></tbody>
         </table>
@@ -100,7 +100,7 @@
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th>ID</th><th>Nome</th><th>Telefone</th><th>Interesse</th><th>Qtd.</th><th>Cidade</th><th>Data</th><th>Horário</th><th>Status</th><th>Última mensagem</th><th>Ação</th>
+            <th>ID</th><th>Nome</th><th>Telefone</th><th>Interesse</th><th>Qtd.</th><th>Cidade</th><th>Data</th><th>Período</th><th>Status</th><th>Última mensagem</th><th>Ação</th>
           </tr></thead>
           <tbody id="tabelaLeads"><tr><td colspan="11" class="empty">Carregando...</td></tr></tbody>
         </table>
@@ -205,8 +205,12 @@
 
       tbody.innerHTML=leads.map(lead=>{
         const humano=normalizarStatus(lead.status)==="aguardando atendente";
+        const telefoneWhats = String(lead.telefone || '').replace(/\D/g,'');
         const acao=humano
-          ? `<button class="btn btn-warning" type="button" onclick="devolverAutomacao('${escapar(lead.telefone)}', this)">Devolver para automação</button>`
+          ? `<div class="acoes-humanas">
+              <a class="btn btn-whatsapp" href="https://wa.me/${telefoneWhats}" target="_blank" rel="noopener noreferrer">Abrir WhatsApp</a>
+              <button class="btn btn-warning" type="button" onclick="devolverAutomacao('${escapar(lead.telefone)}', this)">Devolver para automação</button>
+            </div>`
           : "-";
 
         return `
