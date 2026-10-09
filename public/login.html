@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#08090c" />
+  <title>Login • Bona Chopp</title>
+  <style>
+    :root{--bg:#08090c;--card:#121419;--border:rgba(255,255,255,.08);--text:#f7f7f8;--muted:#9399a5;--gold:#e0a91b;--gold2:#f7ca52;--input:#111319;--danger:#ff8f8f}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--text);background:radial-gradient(circle at 20% 10%,rgba(224,169,27,.12),transparent 28%),radial-gradient(circle at 80% 85%,rgba(224,169,27,.08),transparent 30%),var(--bg);display:grid;place-items:center;padding:24px}
+    .shell{width:min(100%,440px)}
+    .brand{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:24px}
+    .brand-mark{width:42px;height:42px;border-radius:13px;background:linear-gradient(135deg,var(--gold2),var(--gold));display:grid;place-items:center;color:#101010;font-size:22px;font-weight:900}
+    .brand-name{font-size:19px;font-weight:800;letter-spacing:.02em}
+    .card{border:1px solid var(--border);border-radius:24px;background:linear-gradient(180deg,rgba(255,255,255,.025),transparent 42%),rgba(18,20,25,.96);box-shadow:0 28px 80px rgba(0,0,0,.45);overflow:hidden}
+    .top-line{height:3px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+    .content{padding:34px}
+    h1{margin:0;font-size:28px;letter-spacing:-.03em}
+    .subtitle{margin:9px 0 28px;color:var(--muted);font-size:14px;line-height:1.55}
+    .field{margin-bottom:16px}
+    label{display:block;margin-bottom:8px;color:#d9dce3;font-size:13px;font-weight:700}
+    input{width:100%;height:50px;border:1px solid rgba(255,255,255,.09);border-radius:14px;background:var(--input);color:var(--text);padding:0 15px;font-size:15px;outline:none}
+    input:focus{border-color:rgba(224,169,27,.85);box-shadow:0 0 0 4px rgba(224,169,27,.09)}
+    .password-wrap{position:relative}.password-wrap input{padding-right:70px}
+    .show-password{position:absolute;top:50%;right:12px;transform:translateY(-50%);border:0;background:transparent;color:var(--gold2);font-size:12px;font-weight:800;cursor:pointer}
+    .submit{width:100%;height:52px;margin-top:8px;border:0;border-radius:14px;background:linear-gradient(135deg,var(--gold2),var(--gold));color:#101010;font-size:15px;font-weight:900;cursor:pointer}
+    .submit:disabled{opacity:.7;cursor:wait}
+    .error{display:none;margin:18px 0 0;padding:12px 14px;border:1px solid rgba(255,107,107,.18);border-radius:12px;background:rgba(255,107,107,.07);color:var(--danger);font-size:13px}
+    .secure{margin-top:17px;color:#747b87;font-size:11px}.footer{margin-top:20px;text-align:center;color:#666d78;font-size:12px}
+    @media(max-width:520px){body{padding:16px}.content{padding:26px 20px}h1{font-size:24px}.card{border-radius:20px}}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="brand"><div class="brand-mark">B</div><div class="brand-name">BONA CHOPP</div></div>
+    <section class="card">
+      <div class="top-line"></div>
+      <div class="content">
+        <h1>Acessar painel</h1>
+        <p class="subtitle">Entre com suas credenciais para acessar o painel comercial e de atendimento.</p>
+        <form id="loginForm">
+          <div class="field">
+            <label for="usuario">Usuário</label>
+            <input id="usuario" type="text" autocomplete="username" required autofocus placeholder="Digite seu usuário" />
+          </div>
+          <div class="field">
+            <label for="senha">Senha</label>
+            <div class="password-wrap">
+              <input id="senha" type="password" autocomplete="current-password" required placeholder="Digite sua senha" />
+              <button id="togglePassword" class="show-password" type="button">Mostrar</button>
+            </div>
+          </div>
+          <button id="btnLogin" class="submit" type="submit">Entrar</button>
+          <div id="errorBox" class="error"></div>
+        </form>
+        <div class="secure">🔒 Sessão protegida</div>
+      </div>
+    </section>
+    <div class="footer">Bona Chopp • Painel Comercial</div>
+  </div>
+  <script>
+    const form=document.getElementById('loginForm');
+    const usuario=document.getElementById('usuario');
+    const senha=document.getElementById('senha');
+    const btnLogin=document.getElementById('btnLogin');
+    const errorBox=document.getElementById('errorBox');
+    const togglePassword=document.getElementById('togglePassword');
+
+    togglePassword.addEventListener('click',()=>{
+      const visivel=senha.type==='text';
+      senha.type=visivel?'password':'text';
+      togglePassword.textContent=visivel?'Mostrar':'Ocultar';
+    });
+
+    form.addEventListener('submit',async(event)=>{
+      event.preventDefault();
+      errorBox.style.display='none';
+      btnLogin.disabled=true;
+      btnLogin.textContent='Entrando...';
+      try{
+        const response=await fetch('/api/login',{
+          method:'POST',
+          headers:{'Content-Type':'application/json',Accept:'application/json'},
+          body:JSON.stringify({usuario:usuario.value.trim(),senha:senha.value})
+        });
+        const data=await response.json().catch(()=>({}));
+        if(!response.ok) throw new Error(data.error||'Usuário ou senha inválidos');
+        window.location.href='/';
+      }catch(error){
+        errorBox.textContent=error.message;
+        errorBox.style.display='block';
+      }finally{
+        btnLogin.disabled=false;
+        btnLogin.textContent='Entrar';
+      }
+    });
+  </script>
+</body>
+</html>
