@@ -48,6 +48,18 @@
     .empty{color:var(--muted);text-align:center;padding:28px!important}
     .loading{opacity:.55;pointer-events:none}
     .error-box{display:none;margin-bottom:18px;padding:12px 14px;border-radius:10px;background:var(--danger-bg);color:var(--danger);border:1px solid #fecaca;font-size:14px}
+    .price-grid{display:grid;grid-template-columns:repeat(4,minmax(220px,1fr));gap:14px;padding:18px}
+    .price-card{border:1px solid var(--border);border-radius:14px;padding:16px;background:#fff}
+    .price-card h3{margin:0 0 6px;font-size:17px}
+    .price-card .meta{color:var(--muted);font-size:13px;margin-bottom:14px}
+    .price-row{display:flex;gap:8px;align-items:center}
+    .price-input{flex:1;min-width:0;border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:15px;outline:none}
+    .price-input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,160,23,.12)}
+    .btn-save{background:var(--primary);color:#fff;font-weight:800;white-space:nowrap}
+    .price-empty{padding:24px;color:var(--muted);text-align:center}
+    .price-status{margin-top:8px;font-size:12px;color:var(--muted)}
+    @media(max-width:1100px){.price-grid{grid-template-columns:repeat(2,minmax(220px,1fr))}}
+    @media(max-width:640px){.price-grid{grid-template-columns:1fr;padding:14px}.price-row{flex-direction:column;align-items:stretch}.btn-save{width:100%}}
     @media(max-width:1100px){.cards{grid-template-columns:repeat(2,1fr)}}
     @media(max-width:640px){.container{width:94%;padding-top:12px}.topbar{padding:18px}.title-wrap h1{font-size:22px}.cards{grid-template-columns:1fr}.btn-primary{width:100%}.top-actions{width:100%}.status-auto{width:100%}.search{width:100%}.acoes-humanas{flex-direction:column}.acoes-humanas .btn{width:100%}}
   </style>
@@ -92,6 +104,19 @@
       </div>
     </section>
 
+
+    <section class="section">
+      <div class="section-header">
+        <div>
+          <h2>Preços</h2>
+          <div class="last-update">Altere os valores usados pelo atendimento automático.</div>
+        </div>
+      </div>
+      <div id="listaPrecos" class="price-grid">
+        <div class="price-empty">Carregando produtos...</div>
+      </div>
+    </section>
+
     <section class="section">
       <div class="section-header">
         <h2>Leads</h2>
@@ -110,7 +135,7 @@
 
   <script>
     const AUTO_REFRESH_MS = 10000;
-    let dadosAtuais = { indicadores:{}, pedidos:[], leads:[] };
+    let dadosAtuais = { indicadores:{}, pedidos:[], leads:[], produtos:[] };
     let atualizando = false;
     const el = id => document.getElementById(id);
 
@@ -230,6 +255,85 @@
       }).join("");
     }
 
+
+    function renderProdutos(){
+      const box=el("listaPrecos");
+      const produtos=Array.isArray(dadosAtuais.produtos)?dadosAtuais.produtos:[];
+
+      if(!produtos.length){
+        box.innerHTML='<div class="price-empty">Nenhum produto retornado pela API do dashboard. Quando a query devolver <strong>produtos</strong>, eles aparecerão aqui.</div>';
+        return;
+      }
+
+      box.innerHTML=produtos.map(p=>`
+        <div class="price-card">
+          <h3>${escapar(p.nome)}</h3>
+          <div class="meta">${escapar(p.volume)} L ${p.ativo===false?'• Inativo':'• Ativo'}</div>
+          <div class="price-row">
+            <input
+              id="preco-${escapar(p.id)}"
+              class="price-input"
+              type="number"
+              min="0"
+              step="0.01"
+              value="${Number(p.preco||0).toFixed(2)}"
+              aria-label="Preço de ${escapar(p.nome)} ${escapar(p.volume)} litros"
+            />
+            <button
+              class="btn btn-save"
+              type="button"
+              onclick="salvarPreco(${Number(p.id)}, this)"
+            >
+              Salvar
+            </button>
+          </div>
+          <div id="status-preco-${escapar(p.id)}" class="price-status">Atual: ${escapar(formatarMoeda(p.preco))}</div>
+        </div>
+      `).join("");
+    }
+
+    async function salvarPreco(id,botao){
+      const input=el(`preco-${id}`);
+      const status=el(`status-preco-${id}`);
+      const preco=Number(input?.value);
+
+      if(!Number.isFinite(preco) || preco < 0){
+        alert("Informe um preço válido.");
+        return;
+      }
+
+      const original=botao.textContent;
+      botao.disabled=true;
+      botao.textContent="Salvando...";
+      if(status) status.textContent="Salvando alteração...";
+
+      try{
+        const r=await fetch("/api/produtos/preco",{
+          method:"POST",
+          headers:{
+            "Content-Type":"application/json",
+            Accept:"application/json"
+          },
+          body:JSON.stringify({id,preco})
+        });
+
+        if(!r.ok){
+          const detalhe=await r.text().catch(()=> "");
+          throw new Error(`Erro HTTP ${r.status}${detalhe?` - ${detalhe}`:""}`);
+        }
+
+        if(status) status.textContent=`Preço atualizado para ${formatarMoeda(preco)}`;
+        await carregarDashboard({silencioso:true});
+      }catch(e){
+        console.error("Erro ao atualizar preço:",e);
+        if(status) status.textContent="Não foi possível salvar. Verifique o endpoint /api/produtos/preco.";
+        alert("Não foi possível atualizar o preço.");
+      }finally{
+        botao.disabled=false;
+        botao.textContent=original;
+      }
+    }
+
     function mostrarErro(msg){
       const box=el("erro");
       if(!msg){ box.style.display="none"; box.textContent=""; return; }
@@ -255,12 +359,14 @@
         dadosAtuais={
           indicadores:d.indicadores||{},
           pedidos:Array.isArray(d.pedidos)?d.pedidos:[],
-          leads:Array.isArray(d.leads)?d.leads:[]
+          leads:Array.isArray(d.leads)?d.leads:[],
+          produtos:Array.isArray(d.produtos)?d.produtos:[]
         };
 
         renderIndicadores(dadosAtuais.indicadores);
         renderPedidos();
         renderLeads();
+        renderProdutos();
         el("ultimaAtualizacao").textContent=new Date().toLocaleTimeString("pt-BR");
         mostrarErro("");
       }catch(e){
