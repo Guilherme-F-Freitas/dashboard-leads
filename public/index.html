@@ -310,12 +310,16 @@
       tbody.innerHTML=leads.map(lead=>{
         const humano=normalizarStatus(lead.status)==="aguardando atendente";
         const telefoneWhats = String(lead.telefone || '').replace(/\D/g,'');
-        const acao=humano
-          ? `<div class="acoes-humanas">
-              <a class="btn btn-whatsapp" href="https://wa.me/${telefoneWhats}" target="_blank" rel="noopener noreferrer">Abrir WhatsApp</a>
-              <button class="btn btn-warning" type="button" onclick="devolverAutomacao('${escapar(lead.telefone)}', this)">Devolver para automação</button>
-            </div>`
-          : "-";
+
+        const botaoWhats = telefoneWhats
+          ? `<a class="btn btn-whatsapp" href="https://wa.me/${telefoneWhats}" target="_blank" rel="noopener noreferrer">Abrir WhatsApp</a>`
+          : "";
+
+        const botaoAutomacao = humano
+          ? `<button class="btn btn-warning" type="button" onclick="devolverAutomacao('${escapar(lead.telefone)}', this)">Devolver para automação</button>`
+          : "";
+
+        const acao = `<div class="acoes-humanas">${botaoWhats}${botaoAutomacao}</div>`;
 
         return `
           <tr class="${humano?"human-row":""}">
