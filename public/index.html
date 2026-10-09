@@ -62,6 +62,20 @@
     @media(max-width:640px){.price-grid{grid-template-columns:1fr;padding:14px}.price-row{flex-direction:column;align-items:stretch}.btn-save{width:100%}}
     @media(max-width:1100px){.cards{grid-template-columns:repeat(2,1fr)}}
     @media(max-width:640px){.container{width:94%;padding-top:12px}.topbar{padding:18px}.title-wrap h1{font-size:22px}.cards{grid-template-columns:1fr}.btn-primary{width:100%}.top-actions{width:100%}.status-auto{width:100%}.search{width:100%}.acoes-humanas{flex-direction:column}.acoes-humanas .btn{width:100%}}
+  
+    .delivery-grid{display:grid;grid-template-columns:repeat(3,minmax(260px,1fr));gap:14px;padding:18px}
+    .delivery-card{border:1px solid var(--border);border-radius:16px;background:#fff;padding:16px;box-shadow:0 6px 20px rgba(0,0,0,.04)}
+    .delivery-card-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px}
+    .delivery-card h3{margin:0;font-size:16px}
+    .delivery-date{font-size:13px;font-weight:800;color:#92400e;background:#fef3c7;border-radius:999px;padding:6px 9px;white-space:nowrap}
+    .delivery-line{display:flex;gap:8px;margin:7px 0;font-size:13px;line-height:1.4}
+    .delivery-line strong{min-width:86px;color:#4b5563}
+    .delivery-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+    .delivery-empty{padding:24px;color:var(--muted);text-align:center;grid-column:1/-1}
+    .acoes-humanas{display:flex;gap:8px;flex-wrap:wrap}
+    .btn-whatsapp{background:#25D366;color:#fff;text-decoration:none;font-weight:800}
+    @media(max-width:1100px){.delivery-grid{grid-template-columns:repeat(2,minmax(260px,1fr))}}
+    @media(max-width:700px){.delivery-grid{grid-template-columns:1fr;padding:14px}.delivery-card-head{flex-direction:column}.delivery-actions .btn,.acoes-humanas .btn{width:100%;text-align:center}.acoes-humanas{flex-direction:column}}
   </style>
 </head>
 <body>
@@ -89,6 +103,19 @@
     </section>
 
     <div class="last-update">Última atualização: <span id="ultimaAtualizacao">-</span></div>
+
+    <section class="section">
+      <div class="section-header">
+        <div>
+          <h2>Entregas</h2>
+          <div class="last-update">Pedidos confirmados organizados por data e período.</div>
+        </div>
+        <input id="buscarEntrega" class="search" type="search" placeholder="Buscar entrega..." autocomplete="off" />
+      </div>
+      <div id="listaEntregas" class="delivery-grid">
+        <div class="delivery-empty">Carregando entregas...</div>
+      </div>
+    </section>
 
     <section class="section">
       <div class="section-header">
@@ -191,6 +218,57 @@
       el("aguardandoDados").textContent=i.aguardando_dados??0;
       el("confirmados").textContent=i.confirmados??0;
       el("valorConfirmado").textContent=formatarMoeda(i.valor_confirmado);
+    }
+
+
+    function linkWhatsApp(telefone, mensagem=""){
+      const numero=String(telefone||"").replace(/\D/g,"");
+      if(!numero) return "#";
+      const texto=mensagem ? `?text=${encodeURIComponent(mensagem)}` : "";
+      return `https://wa.me/${numero}${texto}`;
+    }
+
+    function renderEntregas(){
+      const termo=(el("buscarEntrega")?.value||"").trim().toLowerCase();
+      const box=el("listaEntregas");
+      if(!box) return;
+
+      const entregas=(dadosAtuais.pedidos||[])
+        .filter(p=>normalizarStatus(p.status)==="confirmado")
+        .filter(p=>textoBusca(p).includes(termo))
+        .sort((a,b)=>{
+          const da=String(a.data_evento||"9999-12-31");
+          const db=String(b.data_evento||"9999-12-31");
+          if(da!==db) return da.localeCompare(db);
+          return String(a.horario_preferido||"").localeCompare(String(b.horario_preferido||""));
+        });
+
+      if(!entregas.length){
+        box.innerHTML='<div class="delivery-empty">Nenhuma entrega confirmada encontrada.</div>';
+        return;
+      }
+
+      box.innerHTML=entregas.map(p=>{
+        const msg=`Olá ${p.nome_completo||""}! Aqui é da Bona Chopp. Estamos entrando em contato sobre seu pedido de ${p.quantidade||""}L de ${p.produto||"chopp"} para ${formatarData(p.data_evento)}.`;
+        return `
+          <article class="delivery-card">
+            <div class="delivery-card-head">
+              <div>
+                <h3>${escapar(p.nome_completo)}</h3>
+                <div class="last-update">${escapar(p.cidade)} • ${escapar(p.horario_preferido)}</div>
+              </div>
+              <div class="delivery-date">${escapar(formatarData(p.data_evento))}</div>
+            </div>
+            <div class="delivery-line"><strong>Produto</strong><span>${escapar(p.produto)} — ${escapar(p.quantidade)} L</span></div>
+            <div class="delivery-line"><strong>Endereço</strong><span>${escapar(p.endereco)}</span></div>
+            <div class="delivery-line"><strong>Telefone</strong><span>${escapar(p.telefone)}</span></div>
+            <div class="delivery-line"><strong>Pagamento</strong><span>${escapar(p.forma_pagamento)}</span></div>
+            <div class="delivery-line"><strong>Valor</strong><span>${escapar(formatarMoeda(p.valor))}</span></div>
+            <div class="delivery-actions">
+              <a class="btn btn-whatsapp" href="${linkWhatsApp(p.telefone,msg)}" target="_blank" rel="noopener noreferrer">Abrir WhatsApp</a>
+            </div>
+          </article>`;
+      }).join("");
     }
 
     function renderPedidos(){
@@ -367,6 +445,7 @@
         renderIndicadores(dadosAtuais.indicadores);
         renderPedidos();
         renderLeads();
+        renderEntregas();
         renderProdutos();
         el("ultimaAtualizacao").textContent=new Date().toLocaleTimeString("pt-BR");
         mostrarErro("");
@@ -428,6 +507,7 @@
     el("btnAtualizar").addEventListener("click",()=>carregarDashboard());
     el("btnSair")?.addEventListener("click",sairDashboard);
     el("buscarPedido").addEventListener("input",renderPedidos);
+    el("buscarEntrega")?.addEventListener("input",renderEntregas);
     el("buscarLead").addEventListener("input",renderLeads);
 
     carregarDashboard();
