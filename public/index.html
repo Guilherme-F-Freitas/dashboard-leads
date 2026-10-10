@@ -103,6 +103,15 @@
     </section>
 
     <div class="last-update">Última atualização: <span id="ultimaAtualizacao">-</span></div>
+    <div class="section-header" aria-label="Paginação">
+      <span id="paginaInfo">Página 1 • busca nos registros desta página</span>
+      <div><button id="paginaAnterior" class="btn" onclick="mudarPagina(-1)">Anterior</button>
+      <button id="paginaProxima" class="btn" onclick="mudarPagina(1)">Próxima</button></div>
+    </div>
+    <section id="alertasSection" class="section" hidden>
+      <div class="section-header"><h2>Atenção ao atendimento</h2></div>
+      <div id="alertas" style="padding:18px" role="status"></div>
+    </section>
 
     <section class="section">
       <div class="section-header">
@@ -165,6 +174,8 @@
     const AUTO_REFRESH_MS = 10000;
     let dadosAtuais = { indicadores:{}, pedidos:[], leads:[], produtos:[] };
     let atualizando = false;
+    let paginaAtual = 1;
+    let totalPaginas = 1;
     const el = id => document.getElementById(id);
 
     function escapar(valor){
@@ -183,6 +194,7 @@
       if(s.includes("confirmado")) return "badge-success";
       if(s.includes("aguardando atendente")) return "badge-warning";
       if(s.includes("aguardando dados")) return "badge-warning";
+      if(s.includes("aguardando confirmacao")) return "badge-warning";
       if(s.includes("orcamento")) return "badge-info";
       if(s.includes("cancelado")) return "badge-danger";
       if(s.includes("ativo")) return "badge-success";
@@ -293,7 +305,8 @@
           <td>${escapar(p.horario_preferido)}</td>
           <td>${escapar(p.forma_pagamento)}</td>
           <td>${escapar(formatarMoeda(p.valor))}</td>
-          <td><span class="badge ${classeStatus(p.status)}">${escapar(labelStatus(p.status))}</span></td>
+          <td><span class="badge ${classeStatus(p.status)}">${escapar(labelStatus(p.status))}</span>
+          ${normalizarStatus(p.status)==='aguardando confirmacao' && Number.isSafeInteger(Number(p.id)) ? `<button class="btn btn-warning" type="button" onclick="confirmarDisponibilidade(${Number(p.id)},this)">Confirmar disponibilidade</button>` : ''}</td>
         </tr>`).join("");
     }
 
@@ -315,8 +328,8 @@
           ? `<a class="btn btn-whatsapp" href="https://wa.me/${telefoneWhats}" target="_blank" rel="noopener noreferrer">Abrir WhatsApp</a>`
           : "";
 
-        const botaoAutomacao = humano
-          ? `<button class="btn btn-warning" type="button" onclick="devolverAutomacao('${escapar(lead.telefone)}', this)">Devolver para automação</button>`
+        const botaoAutomacao = humano && /^\d{10,15}$/.test(String(lead.telefone))
+          ? `<button class="btn btn-warning" type="button" onclick="devolverAutomacao('${String(lead.telefone)}', this)">Devolver para automação</button>`
           : "";
 
         const acao = `<div class="acoes-humanas">${botaoWhats}${botaoAutomacao}</div>`;
@@ -344,7 +357,7 @@
       const produtos=Array.isArray(dadosAtuais.produtos)?dadosAtuais.produtos:[];
 
       if(!produtos.length){
-        box.innerHTML='<div class="price-empty">Nenhum produto retornado pela API do dashboard. Quando a query devolver <strong>produtos</strong>, eles aparecerão aqui.</div>';
+        box.innerHTML='<div class="price-empty">Nenhum produto cadastrado.</div>';
         return;
       }
 
@@ -357,7 +370,7 @@
               id="preco-${escapar(p.id)}"
               class="price-input"
               type="number"
-              min="0"
+              min="0.01"
               step="0.01"
               value="${Number(p.preco||0).toFixed(2)}"
               aria-label="Preço de ${escapar(p.nome)} ${escapar(p.volume)} litros"
@@ -380,7 +393,7 @@
       const status=el(`status-preco-${id}`);
       const preco=Number(input?.value);
 
-      if(!Number.isFinite(preco) || preco < 0){
+      if(!input?.value || !Number.isFinite(preco) || preco <= 0 || preco > 1000000){
         alert("Informe um preço válido.");
         return;
       }
@@ -409,7 +422,7 @@
         await carregarDashboard({silencioso:true});
       }catch(e){
         console.error("Erro ao atualizar preço:",e);
-        if(status) status.textContent="Não foi possível salvar. Verifique o endpoint /api/produtos/preco.";
+        if(status) status.textContent="Não foi possível salvar. Atualize os dados antes de tentar novamente.";
         alert("Não foi possível atualizar o preço.");
       }finally{
         botao.disabled=false;
@@ -435,7 +448,8 @@
       }
 
       try{
-        const r=await fetch("/api/dashboard",{method:"GET",headers:{Accept:"application/json"},cache:"no-store"});
+        const r=await fetch(`/api/dashboard?pagina=${paginaAtual}`,{method:"GET",headers:{Accept:"application/json"},cache:"no-store"});
+        if(r.status===401){ window.location.assign('/login'); return; }
         if(!r.ok) throw new Error(`Erro HTTP ${r.status}`);
 
         const d=await r.json();
@@ -451,11 +465,18 @@
         renderLeads();
         renderEntregas();
         renderProdutos();
+        totalPaginas=Math.max(1,Number(d.paginacao?.total_paginas)||1);
+        el('paginaInfo').textContent=`Página ${paginaAtual} de ${totalPaginas} • até 100 registros por lista • busca nesta página`;
+        el('paginaAnterior').disabled=paginaAtual<=1;
+        el('paginaProxima').disabled=paginaAtual>=totalPaginas;
+        const alertas=Array.isArray(d.alertas)?d.alertas:[];
+        el('alertasSection').hidden=alertas.length===0;
+        el('alertas').innerHTML=alertas.map(a=>`<p><strong>${escapar(a.workflow_nome||'Atendimento')}</strong>: ${escapar(a.mensagem||'Uma execução precisa de revisão.')} — ${escapar(a.etapa||'')}${/^[A-Za-z0-9]+$/.test(String(a.workflow_id)) && /^\d+$/.test(String(a.execution_id)) ? ` <a href="https://n8n-production-a7337.up.railway.app/workflow/${encodeURIComponent(a.workflow_id)}/executions/${encodeURIComponent(a.execution_id)}" target="_blank" rel="noopener noreferrer">Revisar execução</a>` : ''}</p>`).join('');
         el("ultimaAtualizacao").textContent=new Date().toLocaleTimeString("pt-BR");
         mostrarErro("");
       }catch(e){
         console.error("Erro ao carregar dashboard:",e);
-        mostrarErro("Não foi possível atualizar os dados do dashboard. Verifique o workflow/API.");
+        mostrarErro("Não foi possível atualizar os dados. As informações exibidas podem estar desatualizadas. Tente atualizar novamente.");
       }finally{
         atualizando=false;
         if(!silencioso){
@@ -464,6 +485,26 @@
           document.body.classList.remove("loading");
         }
       }
+    }
+
+    async function mudarPagina(delta){
+      if(atualizando) return;
+      const pagina=Math.max(1,Math.min(totalPaginas,paginaAtual+delta));
+      if(pagina===paginaAtual) return;
+      paginaAtual=pagina;
+      await carregarDashboard();
+    }
+
+    async function confirmarDisponibilidade(id,botao){
+      if(!confirm('Você conferiu o estoque, a cidade atendida, a data e a entrega? Confirmar registra a reserva. O contato com o cliente deve ser feito pela equipe.')) return;
+      botao.disabled=true;
+      try{
+        const r=await fetch('/api/pedidos/confirmar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});
+        if(!r.ok) throw new Error('Falha ao confirmar');
+        await carregarDashboard({silencioso:true});
+      }catch{
+        alert('Não foi possível confirmar. Atualize os dados antes de tentar novamente.');
+      }finally{botao.disabled=false;}
     }
 
     async function devolverAutomacao(telefone,botao){

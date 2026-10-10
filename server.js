@@ -21,10 +21,14 @@ const DASHBOARD_USER = process.env.DASHBOARD_USER || '';
 const DASHBOARD_PASSWORD = process.env.DASHBOARD_PASSWORD || '';
 const SESSION_SECRET = process.env.SESSION_SECRET || '';
 const N8N_ADMIN_TOKEN = process.env.N8N_ADMIN_TOKEN || '';
+const N8N_CONFIRMAR_PEDIDO_URL = process.env.N8N_CONFIRMAR_PEDIDO_URL ||
+  'https://n8n-production-a7337.up.railway.app/webhook/pedidos-confirmar';
+const DASHBOARD_ORIGIN = process.env.DASHBOARD_ORIGIN || 'https://dashboard-leads-production.up.railway.app';
 
 function n8nHeaders(extra = {}) {
   return {
     Accept: 'application/json',
+    'X-Bona-Admin-Actor': DASHBOARD_USER,
     ...extra,
     ...(N8N_ADMIN_TOKEN ? { 'X-Bona-Admin-Token': N8N_ADMIN_TOKEN } : {})
   };
@@ -33,7 +37,21 @@ function n8nHeaders(extra = {}) {
 const SESSION_COOKIE = 'bona_dashboard_session';
 const SESSION_DURATION_MS = 8 * 60 * 60 * 1000;
 
-app.use(express.json());
+app.set('trust proxy', 1);
+app.use(express.json({ limit: '32kb' }));
+app.use((req, res, next) => {
+  res.set('X-Content-Type-Options', 'nosniff');
+  res.set('X-Frame-Options', 'DENY');
+  res.set('Referrer-Policy', 'same-origin');
+  res.set('Cache-Control', 'no-store');
+  if (req.method === 'POST' && (req.headers['sec-fetch-site'] === 'cross-site' ||
+      (req.headers.origin && req.headers.origin !== DASHBOARD_ORIGIN &&
+       !(process.env.NODE_ENV !== 'production' && /^http:\/\/localhost:\d+$/.test(req.headers.origin))))) {
+    return res.status(403).json({ error: 'Origem não autorizada' });
+  }
+  next();
+});
+const loginAttempts = new Map();
 
 function safeCompare(a, b) {
   const hashA = crypto.createHash('sha256').update(String(a)).digest();
@@ -118,6 +136,14 @@ app.get('/login', (req, res) => {
 
 app.post('/api/login', (req, res) => {
   try {
+    const now = Date.now();
+    for (const [key, value] of loginAttempts) if (now >= value.until) loginAttempts.delete(key);
+    const key = req.ip || req.socket?.remoteAddress || 'unknown';
+    const attempt = loginAttempts.get(key) || { count: 0, until: now + 15 * 60 * 1000 };
+    if (attempt.count >= 10) {
+      res.set('Retry-After', String(Math.ceil((attempt.until - now) / 1000)));
+      return res.status(429).json({ error: 'Muitas tentativas. Aguarde antes de tentar novamente.' });
+    }
     if (!DASHBOARD_USER || !DASHBOARD_PASSWORD || !SESSION_SECRET) {
       return res.status(500).json({
         error: 'Variáveis de autenticação não configuradas no Railway'
@@ -131,10 +157,13 @@ app.post('/api/login', (req, res) => {
       !safeCompare(usuario, DASHBOARD_USER) ||
       !safeCompare(senha, DASHBOARD_PASSWORD)
     ) {
+      attempt.count++;
+      loginAttempts.set(key, attempt);
       return res.status(401).json({ error: 'Usuário ou senha inválidos' });
     }
 
     const token = createSessionToken(DASHBOARD_USER);
+    loginAttempts.delete(key);
     const isProduction = process.env.NODE_ENV === 'production';
 
     res.cookie(SESSION_COOKIE, token, {
@@ -178,7 +207,13 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/api/dashboard', async (req, res) => {
   try {
-    const response = await fetch(N8N_DASHBOARD_URL, {
+    const pagina = Number(req.query?.pagina || 1);
+    if (!Number.isSafeInteger(pagina) || pagina < 1 || pagina > 10000) {
+      return res.status(400).json({ error: 'Página inválida' });
+    }
+    const url = new URL(N8N_DASHBOARD_URL);
+    url.searchParams.set('pagina', String(pagina));
+    const response = await fetch(url, {
       headers: n8nHeaders(),
       signal: AbortSignal.timeout(15000),
       cache: 'no-store'
@@ -206,8 +241,8 @@ app.post('/api/liberar-automacao', async (req, res) => {
   try {
     const telefone = String(req.body?.telefone || '').trim();
 
-    if (!telefone) {
-      return res.status(400).json({ error: 'Telefone não informado' });
+    if (!/^\d{10,15}$/.test(telefone)) {
+      return res.status(400).json({ error: 'Telefone inválido' });
     }
 
     const response = await fetch(N8N_LIBERAR_AUTOMACAO_URL, {
@@ -227,7 +262,7 @@ app.post('/api/liberar-automacao', async (req, res) => {
     }
 
     if (!response.ok) {
-      return res.status(502).json({
+      return res.status([400,404,409].includes(response.status) ? response.status : 502).json({
         error: 'Erro ao liberar automação no n8n',
         status: response.status,
         details: data
@@ -248,11 +283,11 @@ app.post('/api/produtos/preco', async (req, res) => {
     const id = Number(req.body?.id);
     const preco = Number(req.body?.preco);
 
-    if (!Number.isInteger(id) || id <= 0) {
+    if (!Number.isSafeInteger(id) || id <= 0) {
       return res.status(400).json({ error: 'ID do produto inválido' });
     }
 
-    if (req.body?.preco == null || String(req.body.preco).trim() === '' || !Number.isFinite(preco) || preco <= 0) {
+    if (req.body?.preco == null || String(req.body.preco).trim() === '' || !Number.isFinite(preco) || preco <= 0 || preco > 1000000) {
       return res.status(400).json({ error: 'Preço inválido' });
     }
 
@@ -273,19 +308,36 @@ app.post('/api/produtos/preco', async (req, res) => {
     }
 
     if (!response.ok) {
-      return res.status(502).json({
+      return res.status([400,404,409].includes(response.status) ? response.status : 502).json({
         error: 'Erro ao atualizar preço no n8n',
         status: response.status,
         details: data
       });
     }
 
-    return res.json({ ok: true, produto: data });
+    return res.json({ ok: true, produto: data.produto || data });
   } catch (error) {
     return res.status(500).json({
       error: 'Falha ao atualizar preço',
       details: error.message
     });
+  }
+});
+
+app.post('/api/pedidos/confirmar', async (req, res) => {
+  const id = Number(req.body?.id);
+  if (!Number.isSafeInteger(id) || id <= 0) return res.status(400).json({ error: 'Pedido inválido' });
+  try {
+    const response = await fetch(N8N_CONFIRMAR_PEDIDO_URL, {
+      method: 'POST', headers: n8nHeaders({ 'Content-Type': 'application/json' }),
+      signal: AbortSignal.timeout(15000), body: JSON.stringify({ id })
+    });
+    if (!response.ok) return res.status([400,404,409].includes(response.status) ? response.status : 502)
+      .json({ error: 'Pedido não confirmado. Atualize os dados e confira o status e a disponibilidade.' });
+    const data = await response.json();
+    return res.json(data);
+  } catch {
+    return res.status(502).json({ error: 'Não foi possível confirmar o pedido. Atualize antes de tentar novamente.' });
   }
 });
 
