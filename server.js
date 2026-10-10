@@ -20,6 +20,15 @@ const N8N_ATUALIZAR_PRECO_URL =
 const DASHBOARD_USER = process.env.DASHBOARD_USER || '';
 const DASHBOARD_PASSWORD = process.env.DASHBOARD_PASSWORD || '';
 const SESSION_SECRET = process.env.SESSION_SECRET || '';
+const N8N_ADMIN_TOKEN = process.env.N8N_ADMIN_TOKEN || '';
+
+function n8nHeaders(extra = {}) {
+  return {
+    Accept: 'application/json',
+    ...extra,
+    ...(N8N_ADMIN_TOKEN ? { 'X-Bona-Admin-Token': N8N_ADMIN_TOKEN } : {})
+  };
+}
 
 const SESSION_COOKIE = 'bona_dashboard_session';
 const SESSION_DURATION_MS = 8 * 60 * 60 * 1000;
@@ -39,7 +48,9 @@ function parseCookies(req) {
     if (index === -1) return cookies;
     const key = item.slice(0, index).trim();
     const value = item.slice(index + 1).trim();
-    if (key) cookies[key] = decodeURIComponent(value);
+    if (key) {
+      try { cookies[key] = decodeURIComponent(value); } catch { /* Cookie inválido. */ }
+    }
     return cookies;
   }, {});
 }
@@ -70,7 +81,7 @@ function validateSessionToken(token) {
     const signature = String(decoded.signature || '');
 
     if (!username || !Number.isFinite(issuedAt) || !signature) return false;
-    if (Date.now() - issuedAt > SESSION_DURATION_MS) return false;
+    if (issuedAt > Date.now() || Date.now() - issuedAt > SESSION_DURATION_MS) return false;
 
     const payload = `${username}.${issuedAt}`;
     const expectedSignature = crypto
@@ -168,7 +179,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.get('/api/dashboard', async (req, res) => {
   try {
     const response = await fetch(N8N_DASHBOARD_URL, {
-      headers: { Accept: 'application/json' },
+      headers: n8nHeaders(),
+      signal: AbortSignal.timeout(15000),
       cache: 'no-store'
     });
 
@@ -200,10 +212,8 @@ app.post('/api/liberar-automacao', async (req, res) => {
 
     const response = await fetch(N8N_LIBERAR_AUTOMACAO_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json'
-      },
+      headers: n8nHeaders({ 'Content-Type': 'application/json' }),
+      signal: AbortSignal.timeout(15000),
       body: JSON.stringify({ telefone })
     });
 
@@ -242,16 +252,14 @@ app.post('/api/produtos/preco', async (req, res) => {
       return res.status(400).json({ error: 'ID do produto inválido' });
     }
 
-    if (!Number.isFinite(preco) || preco < 0) {
+    if (req.body?.preco == null || String(req.body.preco).trim() === '' || !Number.isFinite(preco) || preco <= 0) {
       return res.status(400).json({ error: 'Preço inválido' });
     }
 
     const response = await fetch(N8N_ATUALIZAR_PRECO_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json'
-      },
+      headers: n8nHeaders({ 'Content-Type': 'application/json' }),
+      signal: AbortSignal.timeout(15000),
       body: JSON.stringify({ id, preco })
     });
 
