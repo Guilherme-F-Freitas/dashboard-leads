@@ -23,6 +23,10 @@ const SESSION_SECRET = process.env.SESSION_SECRET || '';
 const N8N_ADMIN_TOKEN = process.env.N8N_ADMIN_TOKEN || '';
 const N8N_CONFIRMAR_PEDIDO_URL = process.env.N8N_CONFIRMAR_PEDIDO_URL ||
   'https://n8n-production-a7337.up.railway.app/webhook/pedidos-confirmar';
+const N8N_RECUSAR_PEDIDO_URL = process.env.N8N_RECUSAR_PEDIDO_URL ||
+  'https://n8n-production-a7337.up.railway.app/webhook/pedidos-recusar';
+const N8N_CONCLUIR_ENTREGA_URL = process.env.N8N_CONCLUIR_ENTREGA_URL ||
+  'https://n8n-production-a7337.up.railway.app/webhook/pedidos-concluir';
 const DASHBOARD_ORIGIN = process.env.DASHBOARD_ORIGIN || 'https://dashboard-leads-production.up.railway.app';
 
 function n8nHeaders(extra = {}) {
@@ -44,7 +48,7 @@ app.use((req, res, next) => {
   res.set('X-Frame-Options', 'DENY');
   res.set('Referrer-Policy', 'same-origin');
   res.set('Cache-Control', 'no-store');
-  if (req.method === 'POST' && (req.headers['sec-fetch-site'] === 'cross-site' ||
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) && (req.headers['sec-fetch-site'] === 'cross-site' ||
       (req.headers.origin && req.headers.origin !== DASHBOARD_ORIGIN &&
        !(process.env.NODE_ENV !== 'production' && /^http:\/\/localhost:\d+$/.test(req.headers.origin))))) {
     return res.status(403).json({ error: 'Origem não autorizada' });
@@ -295,7 +299,7 @@ app.post('/api/produtos/preco', async (req, res) => {
       method: 'POST',
       headers: n8nHeaders({ 'Content-Type': 'application/json' }),
       signal: AbortSignal.timeout(15000),
-      body: JSON.stringify({ id, preco })
+      body: JSON.stringify({ acao: 'alterar_preco', id, preco })
     });
 
     const text = await response.text();
@@ -324,6 +328,79 @@ app.post('/api/produtos/preco', async (req, res) => {
   }
 });
 
+app.post('/api/produtos', async (req, res) => {
+  try {
+    const nome = String(req.body?.nome || '').trim().replace(/\s+/g, ' ');
+    const volume = Number(req.body?.volume);
+    const preco = Number(req.body?.preco);
+
+    if (nome.length < 2 || nome.length > 120) {
+      return res.status(400).json({ error: 'Nome do produto inválido' });
+    }
+    if (!Number.isFinite(volume) || volume <= 0 || volume > 100000) {
+      return res.status(400).json({ error: 'Volume inválido' });
+    }
+    if (!Number.isFinite(preco) || preco <= 0 || preco > 1000000) {
+      return res.status(400).json({ error: 'Preço inválido' });
+    }
+
+    const response = await fetch(N8N_ATUALIZAR_PRECO_URL, {
+      method: 'POST',
+      headers: n8nHeaders({ 'Content-Type': 'application/json' }),
+      signal: AbortSignal.timeout(15000),
+      body: JSON.stringify({ acao: 'criar', nome, volume, preco })
+    });
+
+    const text = await response.text();
+    let data;
+    try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text }; }
+
+    if (!response.ok) {
+      return res.status([400, 404, 409].includes(response.status) ? response.status : 502).json({
+        error: response.status === 409 ? 'Já existe um produto ativo com esse nome e volume' : 'Erro ao adicionar produto no n8n',
+        status: response.status,
+        details: data
+      });
+    }
+
+    return res.status(201).json({ ok: true, produto: data.produto || data });
+  } catch (error) {
+    return res.status(500).json({ error: 'Falha ao adicionar produto', details: error.message });
+  }
+});
+
+app.delete('/api/produtos/:id', async (req, res) => {
+  try {
+    const id = Number(req.params?.id);
+    if (!Number.isSafeInteger(id) || id <= 0) {
+      return res.status(400).json({ error: 'ID do produto inválido' });
+    }
+
+    const response = await fetch(N8N_ATUALIZAR_PRECO_URL, {
+      method: 'POST',
+      headers: n8nHeaders({ 'Content-Type': 'application/json' }),
+      signal: AbortSignal.timeout(15000),
+      body: JSON.stringify({ acao: 'excluir', id })
+    });
+
+    const text = await response.text();
+    let data;
+    try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text }; }
+
+    if (!response.ok) {
+      return res.status([400, 404, 409].includes(response.status) ? response.status : 502).json({
+        error: 'Erro ao excluir produto no n8n',
+        status: response.status,
+        details: data
+      });
+    }
+
+    return res.json({ ok: true, produto: data.produto || data });
+  } catch (error) {
+    return res.status(500).json({ error: 'Falha ao excluir produto', details: error.message });
+  }
+});
+
 app.post('/api/pedidos/confirmar', async (req, res) => {
   const id = Number(req.body?.id);
   if (!Number.isSafeInteger(id) || id <= 0) return res.status(400).json({ error: 'Pedido inválido' });
@@ -338,6 +415,40 @@ app.post('/api/pedidos/confirmar', async (req, res) => {
     return res.json(data);
   } catch {
     return res.status(502).json({ error: 'Não foi possível confirmar o pedido. Atualize antes de tentar novamente.' });
+  }
+});
+
+app.post('/api/pedidos/recusar', async (req, res) => {
+  const id = Number(req.body?.id);
+  if (!Number.isSafeInteger(id) || id <= 0) return res.status(400).json({ error: 'Pedido inválido' });
+  try {
+    const response = await fetch(N8N_RECUSAR_PEDIDO_URL, {
+      method: 'POST', headers: n8nHeaders({ 'Content-Type': 'application/json' }),
+      signal: AbortSignal.timeout(15000), body: JSON.stringify({ id })
+    });
+    if (!response.ok) return res.status([400,404,409].includes(response.status) ? response.status : 502)
+      .json({ error: 'Pedido não recusado. Atualize os dados e confira o status.' });
+    const data = await response.json();
+    return res.json(data);
+  } catch {
+    return res.status(502).json({ error: 'Não foi possível recusar o pedido. Atualize antes de tentar novamente.' });
+  }
+});
+
+app.post('/api/pedidos/concluir', async (req, res) => {
+  const id = Number(req.body?.id);
+  if (!Number.isSafeInteger(id) || id <= 0) return res.status(400).json({ error: 'Pedido inválido' });
+  try {
+    const response = await fetch(N8N_CONCLUIR_ENTREGA_URL, {
+      method: 'POST', headers: n8nHeaders({ 'Content-Type': 'application/json' }),
+      signal: AbortSignal.timeout(15000), body: JSON.stringify({ id })
+    });
+    if (!response.ok) return res.status([400,404,409].includes(response.status) ? response.status : 502)
+      .json({ error: 'Entrega não concluída. Atualize os dados e confira o status.' });
+    const data = await response.json();
+    return res.json(data);
+  } catch {
+    return res.status(502).json({ error: 'Não foi possível concluir a entrega. Atualize antes de tentar novamente.' });
   }
 });
 

@@ -22,7 +22,7 @@
     .btn{border:0;border-radius:10px;padding:10px 14px;font-size:14px;cursor:pointer;transition:.2s ease}
     .btn:hover{transform:translateY(-1px);opacity:.92}
     .btn-primary{background:var(--gold);color:#111;font-weight:800}
-    .btn-warning{background:#f59e0b;color:#111827;font-weight:700}.btn-whatsapp{background:#25D366;color:#fff;text-decoration:none;font-weight:800;display:inline-flex;align-items:center;justify-content:center}.acoes-humanas{display:flex;gap:8px;flex-wrap:wrap}
+    .btn-warning{background:#f59e0b;color:#111827;font-weight:700}.btn-danger{background:#b91c1c;color:#fff;font-weight:700}.btn-done{background:#15803d;color:#fff;font-weight:800}.btn-whatsapp{background:#25D366;color:#fff;text-decoration:none;font-weight:800;display:inline-flex;align-items:center;justify-content:center}.acoes-humanas,.acoes-pedido{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
     .btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
     .cards{display:grid;grid-template-columns:repeat(5,minmax(160px,1fr));gap:14px;margin-bottom:24px}
     .card,.section{background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow)}
@@ -58,8 +58,24 @@
     .btn-save{background:var(--primary);color:#fff;font-weight:800;white-space:nowrap}
     .price-empty{padding:24px;color:var(--muted);text-align:center}
     .price-status{margin-top:8px;font-size:12px;color:var(--muted)}
+    .catalog-form{display:grid;grid-template-columns:minmax(190px,2fr) minmax(120px,1fr) minmax(140px,1fr) auto;gap:10px;padding:18px;border-bottom:1px solid var(--border);background:#fffcf3}
+    .catalog-field{display:flex;flex-direction:column;gap:6px}
+    .catalog-field label{font-size:12px;font-weight:800;color:#4b5563}
+    .catalog-input{width:100%;border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:15px;outline:none;background:#fff}
+    .catalog-input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,160,23,.12)}
+    .catalog-submit{align-self:end;min-height:42px}
+    .product-card-actions{display:flex;justify-content:flex-end;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+    .btn-delete-product{background:#fff;color:var(--danger);border:1px solid #fecaca;font-weight:800}
+    .dashboard-tabs{display:flex;gap:8px;margin-top:18px;padding:7px;background:#e9eaed;border:1px solid #dcdee2;border-radius:14px;overflow-x:auto}
+    .tab-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:max-content;border:0;border-radius:10px;padding:11px 16px;background:transparent;color:#4b5563;font-weight:800;cursor:pointer}
+    .tab-btn:hover{background:rgba(255,255,255,.65);color:#111}
+    .tab-btn[aria-selected="true"]{background:#fff;color:#111;box-shadow:0 3px 12px rgba(0,0,0,.08)}
+    .tab-count{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;padding:0 7px;border-radius:999px;background:#e5e7eb;font-size:12px}
+    .tab-btn[aria-selected="true"] .tab-count{background:var(--gold-soft);color:#7c5d00}
+    .tab-panel[hidden]{display:none!important}
     @media(max-width:1100px){.price-grid{grid-template-columns:repeat(2,minmax(220px,1fr))}}
-    @media(max-width:640px){.price-grid{grid-template-columns:1fr;padding:14px}.price-row{flex-direction:column;align-items:stretch}.btn-save{width:100%}}
+    @media(max-width:800px){.catalog-form{grid-template-columns:1fr 1fr}.catalog-field:first-child{grid-column:1/-1}.catalog-submit{width:100%}}
+    @media(max-width:640px){.price-grid{grid-template-columns:1fr;padding:14px}.price-row{flex-direction:column;align-items:stretch}.btn-save{width:100%}.catalog-form{grid-template-columns:1fr;padding:14px}.catalog-field:first-child{grid-column:auto}.catalog-submit{width:100%}.btn-delete-product{width:100%}}
     @media(max-width:1100px){.cards{grid-template-columns:repeat(2,1fr)}}
     @media(max-width:640px){.container{width:94%;padding-top:12px}.topbar{padding:18px}.title-wrap h1{font-size:22px}.cards{grid-template-columns:1fr}.btn-primary{width:100%}.top-actions{width:100%}.status-auto{width:100%}.search{width:100%}.acoes-humanas{flex-direction:column}.acoes-humanas .btn{width:100%}}
   
@@ -108,12 +124,14 @@
       <div><button id="paginaAnterior" class="btn" onclick="mudarPagina(-1)">Anterior</button>
       <button id="paginaProxima" class="btn" onclick="mudarPagina(1)">Próxima</button></div>
     </div>
-    <section id="alertasSection" class="section" hidden>
-      <div class="section-header"><h2>Atenção ao atendimento</h2></div>
-      <div id="alertas" style="padding:18px" role="status"></div>
-    </section>
+    <nav class="dashboard-tabs" role="tablist" aria-label="Seções do painel">
+      <button class="tab-btn" type="button" role="tab" aria-selected="true" aria-controls="painel-entregas" data-tab="entregas">Entregas <span id="contadorEntregas" class="tab-count">0</span></button>
+      <button class="tab-btn" type="button" role="tab" aria-selected="false" aria-controls="painel-pedidos" data-tab="pedidos">Pedidos <span id="contadorPedidos" class="tab-count">0</span></button>
+      <button class="tab-btn" type="button" role="tab" aria-selected="false" aria-controls="painel-catalogo" data-tab="catalogo">Catálogo <span id="contadorCatalogo" class="tab-count">0</span></button>
+      <button class="tab-btn" type="button" role="tab" aria-selected="false" aria-controls="painel-leads" data-tab="leads">Leads <span id="contadorLeads" class="tab-count">0</span></button>
+    </nav>
 
-    <section class="section">
+    <section id="painel-entregas" class="section tab-panel" role="tabpanel" data-panel="entregas">
       <div class="section-header">
         <div>
           <h2>Entregas</h2>
@@ -126,7 +144,7 @@
       </div>
     </section>
 
-    <section class="section">
+    <section id="painel-pedidos" class="section tab-panel" role="tabpanel" data-panel="pedidos" hidden>
       <div class="section-header">
         <h2>Pedidos</h2>
         <input id="buscarPedido" class="search" type="search" placeholder="Buscar pedido..." autocomplete="off" />
@@ -142,19 +160,34 @@
     </section>
 
 
-    <section class="section">
+    <section id="painel-catalogo" class="section tab-panel" role="tabpanel" data-panel="catalogo" hidden>
       <div class="section-header">
         <div>
-          <h2>Preços</h2>
-          <div class="last-update">Altere os valores usados pelo atendimento automático.</div>
+          <h2>Catálogo de produtos</h2>
+          <div class="last-update">Adicione, atualize o preço ou exclua itens usados pelo atendimento automático.</div>
         </div>
       </div>
+      <form id="formNovoProduto" class="catalog-form">
+        <div class="catalog-field">
+          <label for="novoProdutoNome">Produto</label>
+          <input id="novoProdutoNome" class="catalog-input" type="text" minlength="2" maxlength="120" placeholder="Ex.: Pilsen" autocomplete="off" required />
+        </div>
+        <div class="catalog-field">
+          <label for="novoProdutoVolume">Volume (litros)</label>
+          <input id="novoProdutoVolume" class="catalog-input" type="number" min="0.01" max="100000" step="0.01" placeholder="Ex.: 30" required />
+        </div>
+        <div class="catalog-field">
+          <label for="novoProdutoPreco">Preço (R$)</label>
+          <input id="novoProdutoPreco" class="catalog-input" type="number" min="0.01" max="1000000" step="0.01" placeholder="Ex.: 450,00" required />
+        </div>
+        <button id="btnAdicionarProduto" class="btn btn-primary catalog-submit" type="submit">Adicionar produto</button>
+      </form>
       <div id="listaPrecos" class="price-grid">
         <div class="price-empty">Carregando produtos...</div>
       </div>
     </section>
 
-    <section class="section">
+    <section id="painel-leads" class="section tab-panel" role="tabpanel" data-panel="leads" hidden>
       <div class="section-header">
         <h2>Leads</h2>
         <input id="buscarLead" class="search" type="search" placeholder="Buscar lead..." autocomplete="off" />
@@ -191,12 +224,13 @@
 
     function classeStatus(status){
       const s=normalizarStatus(status);
+      if(s.includes("entregue") || s.includes("concluido")) return "badge-success";
       if(s.includes("confirmado")) return "badge-success";
       if(s.includes("aguardando atendente")) return "badge-warning";
       if(s.includes("aguardando dados")) return "badge-warning";
       if(s.includes("aguardando confirmacao")) return "badge-warning";
       if(s.includes("orcamento")) return "badge-info";
-      if(s.includes("cancelado")) return "badge-danger";
+      if(s.includes("cancelado") || s.includes("recusado")) return "badge-danger";
       if(s.includes("ativo")) return "badge-success";
       return "badge-default";
     }
@@ -230,6 +264,25 @@
       el("aguardandoDados").textContent=i.aguardando_dados??0;
       el("confirmados").textContent=i.confirmados??0;
       el("valorConfirmado").textContent=formatarMoeda(i.valor_confirmado);
+    }
+
+    function ativarAba(nome){
+      document.querySelectorAll(".tab-btn").forEach(botao=>{
+        const ativa=botao.dataset.tab===nome;
+        botao.setAttribute("aria-selected",String(ativa));
+        botao.tabIndex=ativa?0:-1;
+      });
+      document.querySelectorAll(".tab-panel").forEach(painel=>{
+        painel.hidden=painel.dataset.panel!==nome;
+      });
+    }
+
+    function atualizarContadoresAbas(){
+      const pedidos=dadosAtuais.pedidos||[];
+      el("contadorEntregas").textContent=pedidos.filter(p=>normalizarStatus(p.status)==="confirmado").length;
+      el("contadorPedidos").textContent=pedidos.length;
+      el("contadorCatalogo").textContent=(dadosAtuais.produtos||[]).length;
+      el("contadorLeads").textContent=dadosAtuais.leads.length;
     }
 
 
@@ -278,6 +331,7 @@
             <div class="delivery-line"><strong>Valor</strong><span>${escapar(formatarMoeda(p.valor))}</span></div>
             <div class="delivery-actions">
               <a class="btn btn-whatsapp" href="${linkWhatsApp(p.telefone,msg)}" target="_blank" rel="noopener noreferrer">Abrir WhatsApp</a>
+              <button class="btn btn-done" type="button" onclick="concluirEntrega(${Number(p.id)}, this)">Concluir entrega</button>
             </div>
           </article>`;
       }).join("");
@@ -306,7 +360,7 @@
           <td>${escapar(p.forma_pagamento)}</td>
           <td>${escapar(formatarMoeda(p.valor))}</td>
           <td><span class="badge ${classeStatus(p.status)}">${escapar(labelStatus(p.status))}</span>
-          ${normalizarStatus(p.status)==='aguardando confirmacao' && Number.isSafeInteger(Number(p.id)) ? `<button class="btn btn-warning" type="button" onclick="confirmarDisponibilidade(${Number(p.id)},this)">Confirmar disponibilidade</button>` : ''}</td>
+          ${normalizarStatus(p.status)==='aguardando confirmacao' && Number.isSafeInteger(Number(p.id)) ? `<div class="acoes-pedido"><button class="btn btn-warning" type="button" onclick="confirmarDisponibilidade(${Number(p.id)},this)">Aceitar pedido</button><button class="btn btn-danger" type="button" onclick="recusarPedido(${Number(p.id)},this)">Recusar pedido</button></div>` : ''}</td>
         </tr>`).join("");
     }
 
@@ -384,8 +438,71 @@
             </button>
           </div>
           <div id="status-preco-${escapar(p.id)}" class="price-status">Atual: ${escapar(formatarMoeda(p.preco))}</div>
+          <div class="product-card-actions">
+            <button
+              class="btn btn-delete-product"
+              type="button"
+              onclick="excluirProduto(${Number(p.id)}, this)"
+            >
+              Excluir produto
+            </button>
+          </div>
         </div>
       `).join("");
+    }
+
+    async function adicionarProduto(evento){
+      evento.preventDefault();
+      const nome=el("novoProdutoNome").value.trim().replace(/\s+/g," ");
+      const volume=Number(el("novoProdutoVolume").value);
+      const preco=Number(el("novoProdutoPreco").value);
+      const botao=el("btnAdicionarProduto");
+
+      if(nome.length<2 || !Number.isFinite(volume) || volume<=0 || !Number.isFinite(preco) || preco<=0){
+        alert("Informe nome, volume e preço válidos.");
+        return;
+      }
+
+      botao.disabled=true;
+      botao.textContent="Adicionando...";
+      try{
+        const r=await fetch("/api/produtos",{
+          method:"POST",
+          headers:{"Content-Type":"application/json",Accept:"application/json"},
+          body:JSON.stringify({nome,volume,preco})
+        });
+        const resposta=await r.json().catch(()=>({}));
+        if(!r.ok) throw new Error(resposta.error||"Falha ao adicionar produto");
+        el("formNovoProduto").reset();
+        await carregarDashboard({silencioso:true});
+      }catch(e){
+        console.error("Erro ao adicionar produto:",e);
+        alert(e.message||"Não foi possível adicionar o produto.");
+      }finally{
+        botao.disabled=false;
+        botao.textContent="Adicionar produto";
+      }
+    }
+
+    async function excluirProduto(id,botao){
+      const produto=(dadosAtuais.produtos||[]).find(item=>Number(item.id)===Number(id));
+      const nome=produto?.nome||"este produto";
+      const volume=produto?.volume||"-";
+      if(!confirm(`Excluir ${nome} • ${volume} L do catálogo? O item deixará de ser oferecido pelo atendimento automático.`)) return;
+      const original=botao.textContent;
+      botao.disabled=true;
+      botao.textContent="Excluindo...";
+      try{
+        const r=await fetch(`/api/produtos/${id}`,{method:"DELETE",headers:{Accept:"application/json"}});
+        const resposta=await r.json().catch(()=>({}));
+        if(!r.ok) throw new Error(resposta.error||"Falha ao excluir produto");
+        await carregarDashboard({silencioso:true});
+      }catch(e){
+        console.error("Erro ao excluir produto:",e);
+        alert(e.message||"Não foi possível excluir o produto.");
+        botao.disabled=false;
+        botao.textContent=original;
+      }
     }
 
     async function salvarPreco(id,botao){
@@ -465,13 +582,11 @@
         renderLeads();
         renderEntregas();
         renderProdutos();
+        atualizarContadoresAbas();
         totalPaginas=Math.max(1,Number(d.paginacao?.total_paginas)||1);
         el('paginaInfo').textContent=`Página ${paginaAtual} de ${totalPaginas} • até 100 registros por lista • busca nesta página`;
         el('paginaAnterior').disabled=paginaAtual<=1;
         el('paginaProxima').disabled=paginaAtual>=totalPaginas;
-        const alertas=Array.isArray(d.alertas)?d.alertas:[];
-        el('alertasSection').hidden=alertas.length===0;
-        el('alertas').innerHTML=alertas.map(a=>`<p><strong>${escapar(a.workflow_nome||'Atendimento')}</strong>: ${escapar(a.mensagem||'Uma execução precisa de revisão.')} — ${escapar(a.etapa||'')}${/^[A-Za-z0-9]+$/.test(String(a.workflow_id)) && /^\d+$/.test(String(a.execution_id)) ? ` <a href="https://n8n-production-a7337.up.railway.app/workflow/${encodeURIComponent(a.workflow_id)}/executions/${encodeURIComponent(a.execution_id)}" target="_blank" rel="noopener noreferrer">Revisar execução</a>` : ''}</p>`).join('');
         el("ultimaAtualizacao").textContent=new Date().toLocaleTimeString("pt-BR");
         mostrarErro("");
       }catch(e){
@@ -496,7 +611,7 @@
     }
 
     async function confirmarDisponibilidade(id,botao){
-      if(!confirm('Você conferiu o estoque, a cidade atendida, a data e a entrega? Confirmar registra a reserva. O contato com o cliente deve ser feito pela equipe.')) return;
+      if(!confirm('Você conferiu o estoque, a cidade atendida, a data e a entrega? Aceitar confirma o pedido e envia a confirmação automática ao cliente.')) return;
       botao.disabled=true;
       try{
         const r=await fetch('/api/pedidos/confirmar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});
@@ -505,6 +620,36 @@
       }catch{
         alert('Não foi possível confirmar. Atualize os dados antes de tentar novamente.');
       }finally{botao.disabled=false;}
+    }
+
+    async function recusarPedido(id,botao){
+      if(!confirm('Recusar este pedido? Ele será marcado como recusado e não enviará confirmação ao cliente.')) return;
+      botao.disabled=true;
+      try{
+        const r=await fetch('/api/pedidos/recusar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});
+        if(!r.ok) throw new Error('Falha ao recusar');
+        await carregarDashboard({silencioso:true});
+      }catch{
+        alert('Não foi possível recusar. Atualize os dados antes de tentar novamente.');
+      }finally{botao.disabled=false;}
+    }
+
+    async function concluirEntrega(id,botao){
+      if(!confirm('Deseja marcar esta entrega como concluída? Ela sairá da lista de entregas pendentes e ficará salva no histórico de pedidos.')) return;
+      botao.disabled=true;
+      const original=botao.textContent;
+      botao.textContent="Concluindo...";
+      try{
+        const r=await fetch('/api/pedidos/concluir',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});
+        if(!r.ok) throw new Error('Falha ao concluir entrega');
+        await carregarDashboard({silencioso:true});
+      }catch{
+        alert('Não foi possível concluir a entrega. Atualize os dados antes de tentar novamente.');
+        botao.disabled=false;
+        botao.textContent=original;
+      }finally{
+        botao.disabled=false;
+      }
     }
 
     async function devolverAutomacao(telefone,botao){
@@ -551,6 +696,8 @@
 
     el("btnAtualizar").addEventListener("click",()=>carregarDashboard());
     el("btnSair")?.addEventListener("click",sairDashboard);
+    el("formNovoProduto")?.addEventListener("submit",adicionarProduto);
+    document.querySelectorAll(".tab-btn").forEach(botao=>botao.addEventListener("click",()=>ativarAba(botao.dataset.tab)));
     el("buscarPedido").addEventListener("input",renderPedidos);
     el("buscarEntrega")?.addEventListener("input",renderEntregas);
     el("buscarLead").addEventListener("input",renderLeads);
