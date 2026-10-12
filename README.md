@@ -8,6 +8,7 @@ Novidades:
 - alertas de execuções que precisam de revisão
 - confirmação pela equipe de pedidos em `aguardando_confirmacao`, após verificar estoque, cidade, data e entrega; após confirmar, o n8n envia a mensagem automática ao cliente pela Evolution
 - navegação por abas entre Entregas, Pedidos, Catálogo e Leads, com contadores e uma seção visível por vez
+- pedidos com vários barris: itens listados um a um no painel, marcação de barril CONDICIONAL e valor principal separado do valor condicional
 - conclusão de entregas diretamente pela aba Entregas: o pedido é marcado como entregue, some da lista de tarefas pendentes e permanece registrado no histórico de pedidos
 - inclusão, alteração de preço e exclusão segura de produtos; a exclusão desativa o item para preservar o histórico e todas as operações ficam auditadas no n8n
 - token administrativo somente no servidor, identificação do operador para auditoria, limites de login e bloqueio de requisições vindas de outras origens

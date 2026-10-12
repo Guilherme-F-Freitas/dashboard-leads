@@ -42,6 +42,7 @@
     .badge-default{background:#f3f4f6;color:#374151}
     .badge-success{background:var(--success-bg);color:var(--success)}
     .badge-warning{background:var(--warning-bg);color:var(--warning)}
+    .conditional-label{display:inline-block;margin-left:4px;padding:2px 6px;border-radius:999px;background:#fff3cd;color:#8a5a00;font-size:10px;letter-spacing:.03em}
     .badge-danger{background:var(--danger-bg);color:var(--danger)}
     .badge-info{background:var(--info-bg);color:var(--info)}
     .human-row td{background:#fffaf0}
@@ -254,6 +255,33 @@
       return Number(valor||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
     }
 
+    function itensPedido(pedido={}){
+      if(Array.isArray(pedido.itens) && pedido.itens.length) return pedido.itens;
+      return pedido.produto && pedido.quantidade
+        ? [{produto:pedido.produto,quantidade:pedido.quantidade,condicional:false,preco:pedido.valor}]
+        : [];
+    }
+
+    function resumoItens(pedido={}){
+      return itensPedido(pedido)
+        .map(item=>`${item.quantidade} L de ${item.produto}${item.condicional?" (condicional)":""}`)
+        .join(" + ") || "-";
+    }
+
+    function itensHtml(pedido={}){
+      const itens=itensPedido(pedido);
+      if(!itens.length) return "-";
+      return itens.map(item=>`${escapar(item.quantidade)} L de ${escapar(item.produto)}${item.condicional?' <strong class="conditional-label">CONDICIONAL</strong>':''}`).join("<br>");
+    }
+
+    function valorPedido(pedido={}){
+      const principal=formatarMoeda(pedido.valor);
+      const condicional=Number(pedido.valor_condicional||0);
+      return condicional>0
+        ? `${principal}<br><small>+ ${formatarMoeda(condicional)} se usar o condicional</small>`
+        : principal;
+    }
+
     function textoBusca(item){
       return Object.values(item||{}).filter(v=>v!==null&&v!==undefined).join(" ").toLowerCase();
     }
@@ -314,7 +342,7 @@
       }
 
       box.innerHTML=entregas.map(p=>{
-        const msg=`Olá ${p.nome_completo||""}! Aqui é da Bona Chopp. Estamos entrando em contato sobre seu pedido de ${p.quantidade||""}L de ${p.produto||"chopp"} para ${formatarData(p.data_evento)}.`;
+        const msg=`Olá ${p.nome_completo||""}! Aqui é da Bona Chopp. Estamos entrando em contato sobre seu pedido de ${resumoItens(p)} para ${formatarData(p.data_evento)}.`;
         return `
           <article class="delivery-card">
             <div class="delivery-card-head">
@@ -324,11 +352,11 @@
               </div>
               <div class="delivery-date">${escapar(formatarData(p.data_evento))}</div>
             </div>
-            <div class="delivery-line"><strong>Produto</strong><span>${escapar(p.produto)} — ${escapar(p.quantidade)} L</span></div>
+            <div class="delivery-line"><strong>Itens</strong><span>${itensHtml(p)}</span></div>
             <div class="delivery-line"><strong>Endereço</strong><span>${escapar(p.endereco)}</span></div>
             <div class="delivery-line"><strong>Telefone</strong><span>${escapar(p.telefone)}</span></div>
             <div class="delivery-line"><strong>Pagamento</strong><span>${escapar(p.forma_pagamento)}</span></div>
-            <div class="delivery-line"><strong>Valor</strong><span>${escapar(formatarMoeda(p.valor))}</span></div>
+            <div class="delivery-line"><strong>Valor</strong><span>${valorPedido(p)}</span></div>
             <div class="delivery-actions">
               <a class="btn btn-whatsapp" href="${linkWhatsApp(p.telefone,msg)}" target="_blank" rel="noopener noreferrer">Abrir WhatsApp</a>
               <button class="btn btn-done" type="button" onclick="concluirEntrega(${Number(p.id)}, this)">Concluir entrega</button>
@@ -352,13 +380,13 @@
           <td>${escapar(p.id)}</td>
           <td>${escapar(p.nome_completo)}</td>
           <td>${escapar(p.telefone)}</td>
-          <td>${escapar(p.produto)}</td>
-          <td>${escapar(p.quantidade)}</td>
+          <td>${itensHtml(p)}</td>
+          <td>${escapar(itensPedido(p).reduce((total,item)=>total+Number(item.quantidade||0),0))}</td>
           <td>${escapar(p.cidade)}</td>
           <td>${escapar(formatarData(p.data_evento))}</td>
           <td>${escapar(p.horario_preferido)}</td>
           <td>${escapar(p.forma_pagamento)}</td>
-          <td>${escapar(formatarMoeda(p.valor))}</td>
+          <td>${valorPedido(p)}</td>
           <td><span class="badge ${classeStatus(p.status)}">${escapar(labelStatus(p.status))}</span>
           ${normalizarStatus(p.status)==='aguardando confirmacao' && Number.isSafeInteger(Number(p.id)) ? `<div class="acoes-pedido"><button class="btn btn-warning" type="button" onclick="confirmarDisponibilidade(${Number(p.id)},this)">Aceitar pedido</button><button class="btn btn-danger" type="button" onclick="recusarPedido(${Number(p.id)},this)">Recusar pedido</button></div>` : ''}</td>
         </tr>`).join("");
