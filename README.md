@@ -1,5 +1,18 @@
 # Dashboard Leads - Bona Chopp
 
+## Next.js (nova interface)
+
+O painel foi reconstruído em Next.js com a mesma integração n8n e os mesmos fluxos administrativos: login, atualização automática, paginação, entregas, confirmação/recusa de pedidos, devolução de leads para automação e gestão do catálogo.
+
+```bash
+npm install
+npm run dev
+```
+
+Abra `http://localhost:3000`. Para produção, use `npm run build` e `npm start`.
+
+As variáveis de ambiente existentes continuam necessárias: `DASHBOARD_USER`, `DASHBOARD_PASSWORD`, `SESSION_SECRET`, `N8N_ADMIN_TOKEN` e as URLs `N8N_*` documentadas abaixo.
+
 Novidades:
 - destaca leads em `aguardando_atendente`
 - botão "Devolver para automação"
